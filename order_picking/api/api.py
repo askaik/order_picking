@@ -10,14 +10,14 @@ def get_invoice_items(scan_input):
 	# Find invoice by name or po_no
 	invoice = frappe.get_all(
 		"Sales Invoice",
-		filters={"docstatus": 1, "name": scan_input},
+		filters={"name": scan_input},
 		limit=1
 	)
 	
 	if not invoice:
 		invoice = frappe.get_all(
 			"Sales Invoice",
-			filters={"docstatus": 1, "po_no": scan_input},
+			filters={"po_no": scan_input},
 			limit=1
 		)
 
@@ -25,6 +25,10 @@ def get_invoice_items(scan_input):
 		frappe.throw(_("Sales Invoice not found for: {0}").format(scan_input))
 
 	invoice_doc = frappe.get_doc("Sales Invoice", invoice[0].name)
+
+	# Validate it is submitted (docstatus 1)
+	if invoice_doc.docstatus != 1:
+		frappe.throw(_("Sales Invoice {0} must be Submitted before picking.").format(invoice_doc.name))
 	
 	items_to_pick = {}
 

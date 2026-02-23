@@ -30,12 +30,15 @@ frappe.pages['order_picking'].on_page_load = function (wrapper) {
 
 	// Fetch active session on load
 	frappe.call({
-		method: 'order_picking.order_picking.api.api.get_active_order_pick',
+		method: 'order_picking.api.api.get_active_order_pick',
 		callback: function (r) {
 			if (r.message) {
 				order_pick_id = r.message;
 				frappe.show_alert({ message: __(`Active Order Pick Session: ${order_pick_id}`), indicator: 'blue' });
 			}
+		},
+		error: function (r) {
+			frappe.msgprint("Error loading active session: " + JSON.stringify(r));
 		}
 	});
 
@@ -97,7 +100,7 @@ frappe.pages['order_picking'].on_page_load = function (wrapper) {
 			if (!scan_val) return;
 
 			frappe.call({
-				method: 'order_picking.order_picking.api.api.get_invoice_items',
+				method: 'order_picking.api.api.get_invoice_items',
 				args: {
 					scan_input: scan_val
 				},
@@ -112,6 +115,9 @@ frappe.pages['order_picking'].on_page_load = function (wrapper) {
 						$item_input.prop('disabled', false).focus();
 						render_lists();
 					}
+				},
+				error: function (r) {
+					frappe.msgprint("Error fetching invoice: " + JSON.stringify(r));
 				}
 			});
 		}
@@ -158,7 +164,7 @@ frappe.pages['order_picking'].on_page_load = function (wrapper) {
 	$ready_btn.on('click', function () {
 		if (current_invoice) {
 			frappe.call({
-				method: 'order_picking.order_picking.api.api.mark_invoice_as_ready',
+				method: 'order_picking.api.api.mark_invoice_as_ready',
 				args: {
 					invoice_name: current_invoice,
 					order_pick_id: order_pick_id
@@ -184,7 +190,7 @@ frappe.pages['order_picking'].on_page_load = function (wrapper) {
 		if (order_pick_id) {
 			frappe.confirm(__('Submit this Order Pick? This will create a Dispatch Order.'), () => {
 				frappe.call({
-					method: 'order_picking.order_picking.api.api.submit_order_pick',
+					method: 'order_picking.api.api.submit_order_pick',
 					args: { order_pick_id: order_pick_id },
 					callback: function (r) {
 						if (!r.exc) {
