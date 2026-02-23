@@ -6,7 +6,7 @@ authors = [
 description = "Order Picking App for ERPNext to ensure 100% accurate deliveries"
 requires-python = ">=3.10"
 readme = "README.md"
-dynamic = ["version"]
+version = "0.0.1"
 dependencies = []
 
 [build-system]
