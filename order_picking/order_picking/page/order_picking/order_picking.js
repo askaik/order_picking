@@ -105,7 +105,11 @@ frappe.pages['order_picking'].on_page_load = function (wrapper) {
 					scan_input: scan_val
 				},
 				callback: function (r) {
-					if (r.message) {
+					if (r.message && r.message.error) {
+						frappe.msgprint({ title: 'Scanner Error', message: r.message.error, indicator: 'red' });
+						frappe.utils.play_sound('error');
+						$invoice_input.val('').focus();
+					} else if (r.message) {
 						current_invoice = r.message.invoice_name;
 						items_to_pick = r.message.items; // format: [{item_code: "ART-1", qty: 2}]
 						picked_items = [];

@@ -7,57 +7,46 @@ def get_invoice_items(scan_input):
 	Fetch items from a Sales Invoice given its standard name or WooCommerce po_no.
 	If an item has packed items (Product Bundle), fetch those instead of the parent.
 	"""
-	# Find invoice by name or po_no
-	invoice = frappe.get_all(
-		"Sales Invoice",
-		filters={"name": scan_input},
-		limit=1
-	)
-	
-	if not invoice:
-		invoice = frappe.get_all(
-			"Sales Invoice",
-			filters={"po_no": scan_input},
-			limit=1
-		)
+	try:
+		# Check standard name first using fast db get
+		invoice_name = frappe.db.get_value("Sales Invoice", {"name": scan_input}, "name")
+		
+		# Check po_no if standard name fails
+		if not invoice_name:
+			invoice_name = frappe.db.get_value("Sales Invoice", {"po_no": scan_input}, "name")
+			
+		if not invoice_name:
+			return {"error": f"Sales Invoice not found for: {scan_input}"}
 
-	if not invoice:
-		frappe.throw(_("Sales Invoice not found for: {0}").format(scan_input))
+		invoice_doc = frappe.get_doc("Sales Invoice", invoice_name)
+		
+		items_to_pick = {}
 
-	invoice_doc = frappe.get_doc("Sales Invoice", invoice[0].name)
+		# Safe extraction of packed items
+		packed_items = invoice_doc.get("packed_items") or []
+		bundle_parent_items = set([getattr(p, "parent_item", "") for p in packed_items if getattr(p, "parent_item", "")])
 
-	# Validate it is submitted (docstatus 1)
-	if invoice_doc.docstatus != 1:
-		frappe.throw(_("Sales Invoice {0} must be Submitted before picking.").format(invoice_doc.name))
-	
-	items_to_pick = {}
+		# Safe extraction of normal items
+		for item in invoice_doc.get("items") or []:
+			i_code = getattr(item, "item_code", None) or getattr(item, "item_name", "Unknown")
+			if i_code not in bundle_parent_items:
+				items_to_pick[i_code] = items_to_pick.get(i_code, 0) + getattr(item, "qty", 0)
 
-	# Helper to accurately aggregate quantities
-	def add_to_pick_list(item_code, qty):
-		if item_code in items_to_pick:
-			items_to_pick[item_code] += qty
-		else:
-			items_to_pick[item_code] = qty
+		# Include packed items safely
+		for p_item in packed_items:
+			p_code = getattr(p_item, "item_code", None) or getattr(p_item, "item_name", "Unknown")
+			items_to_pick[p_code] = items_to_pick.get(p_code, 0) + getattr(p_item, "qty", 0)
 
-	# Identify any parent items that are Product Bundles
-	packed_items = invoice_doc.get("packed_items", [])
-	bundle_parent_items = set([p.parent_item for p in packed_items])
+		# Format response
+		return {
+			"invoice_name": invoice_doc.name,
+			"po_no": getattr(invoice_doc, "po_no", ""),
+			"items": [{"item_code": k, "qty": v} for k, v in items_to_pick.items() if v > 0]
+		}
 
-	# Add regular items (items that are NOT parent bundles)
-	for item in invoice_doc.get("items", []):
-		if item.item_code not in bundle_parent_items:
-			add_to_pick_list(item.item_code, item.qty)
-
-	# Add the components of the Product Bundles
-	for p_item in packed_items:
-		add_to_pick_list(p_item.item_code, p_item.qty)
-
-	# Format response
-	return {
-		"invoice_name": invoice_doc.name,
-		"po_no": invoice_doc.po_no,
-		"items": [{"item_code": k, "qty": v} for k, v in items_to_pick.items()]
-	}
+	except Exception as e:
+		frappe.log_error(frappe.get_traceback(), f"Order Picking Error: {scan_input}")
+		return {"error": f"Backend Error: {str(e)}"}
 
 @frappe.whitelist()
 def get_active_order_pick():
