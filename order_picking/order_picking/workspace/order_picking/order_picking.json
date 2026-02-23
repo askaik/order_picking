@@ -1,17 +1,76 @@
 {
     "app": "order_picking",
     "category": "Modules",
-    "content": "[{\"id\":\"hdr-1\",\"type\":\"header\",\"data\":{\"text\":\"Order Picking Dashboard\",\"level\":4,\"col\":12}},{\"id\":\"shortcut-1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Launch Scanner\",\"link_to\":\"order_picking\",\"link_type\":\"Page\",\"color\":\"green\"}},{\"id\":\"shortcut-2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Order Picks History\",\"link_to\":\"Order Pick\",\"link_type\":\"DocType\",\"color\":\"blue\"}}]",
+    "charts": [],
+    "content": "[{\"id\":\"hdr-1\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Order Picking Dashboard</b></span>\",\"col\":12}},{\"id\":\"shortcut-1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Launch Scanner\",\"col\":6}},{\"id\":\"shortcut-2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Order Picks History\",\"col\":6}},{\"id\":\"LNKBRK-1\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Settings & Records</b></span>\",\"col\":12}},{\"id\":\"CARD-1\",\"type\":\"card\",\"data\":{\"card_name\":\"Order Picking\",\"col\":4}}]",
     "creation": "2024-02-23 00:00:00.000000",
+    "custom_blocks": [],
     "docstatus": 0,
     "doctype": "Workspace",
+    "for_user": "",
+    "hide_custom": 0,
     "icon": "truck",
     "indicator_color": "green",
     "is_hidden": 0,
-    "is_standard": 1,
+    "label": "Order Picking",
+    "links": [
+        {
+            "hidden": 0,
+            "is_query_report": 0,
+            "label": "Order Picking",
+            "link_count": 0,
+            "onboard": 0,
+            "type": "Card Break"
+        },
+        {
+            "dependencies": "",
+            "hidden": 0,
+            "is_query_report": 0,
+            "label": "Order Pick Sessions",
+            "link_count": 0,
+            "link_to": "Order Pick",
+            "link_type": "DocType",
+            "onboard": 0,
+            "type": "Link"
+        },
+        {
+            "dependencies": "",
+            "hidden": 0,
+            "is_query_report": 0,
+            "label": "Order Picking Page",
+            "link_count": 0,
+            "link_to": "order_picking",
+            "link_type": "Page",
+            "onboard": 0,
+            "type": "Link"
+        }
+    ],
+    "modified": "2024-02-23 00:00:00.000000",
+    "modified_by": "Administrator",
     "module": "Order Picking",
     "name": "Order Picking",
+    "number_cards": [],
+    "owner": "Administrator",
+    "parent_page": "",
     "public": 1,
+    "quick_lists": [],
+    "restrict_to_domain": "",
+    "roles": [],
     "sequence_id": 10.0,
-    "title": "Order Picking"
+    "shortcuts": [
+        {
+            "label": "Launch Scanner",
+            "link_to": "order_picking",
+            "type": "Page",
+            "color": "Green"
+        },
+        {
+            "label": "Order Picks History",
+            "link_to": "Order Pick",
+            "type": "DocType",
+            "color": "Blue"
+        }
+    ],
+    "title": "Order Picking",
+    "type": "Workspace"
 }
