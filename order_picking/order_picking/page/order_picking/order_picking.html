@@ -3,13 +3,18 @@
     <div class="section-box progress-box">
         <h4 class="text-center font-weight-bold">Total Picked Item %</h4>
         <div class="progress picking-progress">
-            <div id="picking_progress_bar" class="progress-bar bg-danger" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+            <div id="picking_progress_bar" class="progress-bar bg-danger" role="progressbar" style="width: 0%;"
+                aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                 <span id="progress_text" class="progress-label">0%</span>
             </div>
         </div>
         <div class="text-center mt-3">
-            <button id="mark_ready_btn" class="btn btn-success btn-lg" style="display:none; width: 100%;">
-                Mark as Ready to Dispatch
+            <button id="mark_ready_btn" class="btn btn-success btn-lg"
+                style="display:none; width: 100%; margin-bottom: 10px;">
+                Mark Invoice as Ready
+            </button>
+            <button id="submit_pick_btn" class="btn btn-primary btn-lg" style="display:none; width: 100%;">
+                Submit Order Pick (Create Dispatch)
             </button>
         </div>
     </div>
@@ -20,7 +25,8 @@
             <input type="text" id="scan_invoice_input" class="form-control input-lg" placeholder="Scan Invoice...">
         </div>
         <div class="scan-box">
-            <input type="text" id="scan_item_input" class="form-control input-lg" placeholder="Scan Item Here..." disabled>
+            <input type="text" id="scan_item_input" class="form-control input-lg" placeholder="Scan Item Here..."
+                disabled>
         </div>
     </div>
 
