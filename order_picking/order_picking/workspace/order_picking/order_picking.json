@@ -1,0 +1,17 @@
+{
+    "app": "order_picking",
+    "category": "Modules",
+    "content": "[{\"id\":\"hdr-1\",\"type\":\"header\",\"data\":{\"text\":\"Order Picking Dashboard\",\"level\":4,\"col\":12}},{\"id\":\"shortcut-1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Launch Scanner\",\"link_to\":\"order_picking\",\"link_type\":\"Page\",\"color\":\"green\"}},{\"id\":\"shortcut-2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Order Picks History\",\"link_to\":\"Order Pick\",\"link_type\":\"DocType\",\"color\":\"blue\"}}]",
+    "creation": "2024-02-23 00:00:00.000000",
+    "docstatus": 0,
+    "doctype": "Workspace",
+    "icon": "truck",
+    "indicator_color": "green",
+    "is_hidden": 0,
+    "is_standard": 1,
+    "module": "Order Picking",
+    "name": "Order Picking",
+    "public": 1,
+    "sequence_id": 10.0,
+    "title": "Order Picking"
+}

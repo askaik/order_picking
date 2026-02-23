@@ -1,0 +1,11 @@
+{
+    "creation": "2024-02-23 00:00:00.000000",
+    "docstatus": 0,
+    "doctype": "Page",
+    "module": "Order Picking",
+    "name": "order_picking",
+    "page_name": "order_picking",
+    "standard": "Yes",
+    "system_page": 0,
+    "title": "Order Picking Scanner"
+}
