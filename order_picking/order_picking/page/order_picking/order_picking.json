@@ -1,0 +1,16 @@
+{
+    "creation": "2024-02-23 00:00:00.000000",
+    "docstatus": 0,
+    "doctype": "Page",
+    "idx": 0,
+    "javascript": "frappe.pages['order_picking'].on_page_load = function(wrapper) {\n\twindow.location.href = '/order-picking';\n}",
+    "modified": "2024-02-23 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Order Picking",
+    "name": "order_picking",
+    "owner": "Administrator",
+    "page_name": "order_picking",
+    "roles": [],
+    "standard": "Yes",
+    "title": "Order Picking"
+}
