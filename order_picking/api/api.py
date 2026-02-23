@@ -39,21 +39,18 @@ def get_invoice_items(scan_input):
 		else:
 			items_to_pick[item_code] = qty
 
-	for item in invoice_doc.items:
-		# Check if this item is a product bundle (has packed items)
-		packed_items = frappe.get_all(
-			"Packed Item",
-			filters={"parent": invoice_doc.name, "parent_item": item.item_code},
-			fields=["item_code", "qty"]
-		)
-		
-		if packed_items:
-			# It's a bundle, fetch packed items
-			for p_item in packed_items:
-				add_to_pick_list(p_item.item_code, p_item.qty)
-		else:
-			# Not a bundle, regular item
+	# Identify any parent items that are Product Bundles
+	packed_items = invoice_doc.get("packed_items", [])
+	bundle_parent_items = set([p.parent_item for p in packed_items])
+
+	# Add regular items (items that are NOT parent bundles)
+	for item in invoice_doc.get("items", []):
+		if item.item_code not in bundle_parent_items:
 			add_to_pick_list(item.item_code, item.qty)
+
+	# Add the components of the Product Bundles
+	for p_item in packed_items:
+		add_to_pick_list(p_item.item_code, p_item.qty)
 
 	# Format response
 	return {
