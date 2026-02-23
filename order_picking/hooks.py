@@ -33,3 +33,8 @@ required_apps = ["erpnext"]
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
+
+website_route_rules = [
+	{"from_route": "/order-picking/<path:app_path>", "to_route": "order_picking"},
+	{"from_route": "/order-picking", "to_route": "order_picking"}
+]

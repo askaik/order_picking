@@ -60,8 +60,8 @@
     "shortcuts": [
         {
             "label": "Launch Scanner",
-            "link_to": "order_picking",
-            "type": "Page",
+            "link_to": "/order-picking",
+            "type": "Link",
             "color": "Green"
         },
         {
