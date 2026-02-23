@@ -5,6 +5,8 @@ app_description = "Order Picking App for ERPNext to ensure 100% accurate deliver
 app_email = "hello@example.com"
 app_license = "mit"
 
+required_apps = ["erpnext"]
+
 # Includes in <head>
 # ------------------
 
