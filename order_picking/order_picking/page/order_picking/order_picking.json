@@ -10,7 +10,14 @@
     "name": "order_picking",
     "owner": "Administrator",
     "page_name": "order_picking",
-    "roles": [],
+    "roles": [
+        {
+            "role": "System Manager"
+        },
+        {
+            "role": "All"
+        }
+    ],
     "standard": "Yes",
     "title": "Order Picking"
 }
