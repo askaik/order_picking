@@ -38,3 +38,5 @@ website_route_rules = [
 	{"from_route": "/order-picking/<path:app_path>", "to_route": "order_picking"},
 	{"from_route": "/order-picking", "to_route": "order_picking"}
 ]
+
+after_migrate = "order_picking.setup.after_migrate"

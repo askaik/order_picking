@@ -244,6 +244,7 @@ const apiCall = async (method, args = {}) => {
     return data.message;
   } catch (error) {
     showAlert(error.message, 'error');
+    alert(`Backend Error: ${error.message}`);
     throw error;
   } finally {
     isLoading.value = false;
