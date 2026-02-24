@@ -29,19 +29,29 @@ def get_invoice_items(scan_input):
 		# Safe extraction of normal items
 		for item in invoice_doc.get("items") or []:
 			i_code = getattr(item, "item_code", None) or getattr(item, "item_name", "Unknown")
+			barcode = getattr(item, "barcode", "")
+			if not barcode and i_code:
+				barcode = frappe.db.get_value("Item", i_code, "barcode") or ""
+				
 			if i_code not in bundle_parent_items:
-				items_to_pick[i_code] = items_to_pick.get(i_code, 0) + getattr(item, "qty", 0)
+				if i_code not in items_to_pick:
+					items_to_pick[i_code] = {"qty": 0, "barcode": barcode}
+				items_to_pick[i_code]["qty"] += getattr(item, "qty", 0)
+				if barcode and not items_to_pick[i_code]["barcode"]:
+					items_to_pick[i_code]["barcode"] = barcode
 
 		# Include packed items safely
 		for p_item in packed_items:
 			p_code = getattr(p_item, "item_code", None) or getattr(p_item, "item_name", "Unknown")
-			items_to_pick[p_code] = items_to_pick.get(p_code, 0) + getattr(p_item, "qty", 0)
+			if p_code not in items_to_pick:
+				items_to_pick[p_code] = {"qty": 0, "barcode": frappe.db.get_value("Item", p_code, "barcode") or ""}
+			items_to_pick[p_code]["qty"] += getattr(p_item, "qty", 0)
 
 		# Format response
 		return {
 			"invoice_name": invoice_doc.name,
 			"po_no": getattr(invoice_doc, "po_no", ""),
-			"items": [{"item_code": k, "qty": v} for k, v in items_to_pick.items() if v > 0]
+			"items": [{"item_code": k, "qty": v["qty"], "barcode": v["barcode"]} for k, v in items_to_pick.items() if v["qty"] > 0]
 		}
 
 	except Exception as e:
@@ -98,7 +108,12 @@ def submit_order_pick(order_pick_id):
 	Submits the Order Pick session. The document's on_submit logic will
 	create the Dispatch Order draft automatically.
 	"""
-	doc = frappe.get_doc("Order Pick", order_pick_id)
-	doc.submit()
-	return True
+	try:
+		doc = frappe.get_doc("Order Pick", order_pick_id)
+		doc.flags.ignore_permissions = True
+		doc.submit()
+		return {"status": "success"}
+	except Exception as e:
+		frappe.log_error(frappe.get_traceback(), "Order Pick Submit Error")
+		return {"error": f"Submission failed: {str(e)}"}
 

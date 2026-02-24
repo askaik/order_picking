@@ -1,13 +1,13 @@
 <template>
   <div class="picking-wrapper max-w-5xl mx-auto p-5">
     <!-- Header / Branding -->
-    <div class="mb-6 flex justify-between items-center bg-white p-4 shadow-sm rounded-lg border border-gray-100">
+    <div class="mb-6 flex justify-between items-center bg-white dark:bg-slate-800 p-4 shadow-sm rounded-lg border border-gray-100 dark:border-slate-700">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center font-bold text-xl ring-1 ring-green-100 shadow-sm">
           OP
         </div>
         <div>
-          <h1 class="text-xl font-bold text-gray-800">Order Picking</h1>
+          <h1 class="text-xl font-bold text-gray-800 dark:text-slate-100">Order Picking</h1>
           <p class="text-xs text-gray-500 font-medium tracking-wide flex items-center gap-1">
             <span v-if="orderPickId">Session: <span class="text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded">{{ orderPickId }}</span></span>
             <span v-else class="text-gray-400">Loading Session...</span>
@@ -35,7 +35,7 @@
     </Transition>
 
     <!-- Progress Bar Section -->
-    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6 relative overflow-hidden">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 mb-6 relative overflow-hidden">
       <!-- Decorator element -->
       <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-400 to-indigo-500"></div>
       
@@ -61,8 +61,8 @@
       </div>
       
       <div class="flex justify-between items-center mt-4 h-12">
-        <div class="text-sm font-medium text-gray-500 bg-gray-50 px-3 py-1.5 rounded-md border border-gray-100 shadow-sm" v-if="currentInvoice">
-            Active: <span class="font-bold text-gray-800">{{ currentInvoice }}</span>
+        <div class="text-sm font-medium text-gray-500 bg-gray-50 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-md border border-gray-100 dark:border-slate-600 shadow-sm" v-if="currentInvoice">
+            Active: <span class="font-bold text-gray-800 dark:text-white">{{ currentInvoice }}</span>
         </div>
         <div v-else></div>
 
@@ -100,7 +100,7 @@
           @keyup.enter="handleInvoiceScan"
           type="text" 
           id="scan_invoice_input" 
-          class="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-sm font-medium bg-white placeholder-gray-400" 
+          class="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 dark:border-slate-600 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-sm font-medium bg-white dark:bg-slate-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500" 
           placeholder="Scan Invoice Barcode..." 
           :disabled="isLoading"
           ref="invoiceInputRef"
@@ -117,7 +117,7 @@
           type="text" 
           id="scan_item_input" 
           :class="{'ring-4 ring-green-400/50 bg-green-50': flashSuccess, 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/20': !flashSuccess}"
-          class="w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:ring-4 transition-all shadow-sm font-medium bg-white placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:border-gray-200" 
+          class="w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:ring-4 transition-all shadow-sm font-medium bg-white dark:bg-slate-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 disabled:bg-gray-100 dark:disabled:bg-slate-900 disabled:cursor-not-allowed disabled:border-gray-200 dark:disabled:border-slate-700" 
           placeholder="Scan Item Barcode..." 
           :disabled="!currentInvoice || percentage === 100 || isLoading"
           ref="itemInputRef"
@@ -129,7 +129,7 @@
     <div class="flex flex-col md:flex-row gap-6">
       
       <!-- Items to Pick -->
-      <div class="flex-1 bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col min-h-[400px]">
+      <div class="flex-1 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 flex flex-col min-h-[400px]">
         <h4 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 border-b pb-3 flex justify-between items-center">
           <span class="flex items-center gap-2">
              <div class="w-2 h-2 rounded-full bg-blue-500"></div> Items to Pick
@@ -141,10 +141,10 @@
           <div 
             v-for="item in itemsToPick.filter(i => i.qty > 0)" 
             :key="item.item_code" 
-            class="flex justify-between items-center bg-gray-50 border border-gray-100 p-3 rounded-lg hover:border-blue-200 hover:shadow-sm transition-all group"
+            class="flex justify-between items-center bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 p-3 rounded-lg hover:border-blue-200 hover:shadow-sm transition-all group"
           >
-            <div class="font-semibold text-gray-800 tracking-wide">{{ item.item_code }}</div>
-            <div class="text-lg font-black bg-white px-3 py-1 rounded shadow-sm border border-gray-200 group-hover:border-blue-300 group-hover:text-blue-700 transition-colors">{{ item.qty }}</div>
+            <div class="font-semibold text-gray-800 dark:text-slate-100 tracking-wide">{{ item.item_code }}</div>
+            <div class="text-lg font-black bg-white dark:bg-slate-800 px-3 py-1 rounded shadow-sm border border-gray-200 dark:border-slate-500 group-hover:border-blue-300 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">{{ item.qty }}</div>
           </div>
         </div>
         <div v-else class="flex-1 flex flex-col items-center justify-center text-gray-400 h-full opacity-60">
@@ -154,7 +154,7 @@
       </div>
 
       <!-- Picked Items -->
-      <div class="flex-1 bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col min-h-[400px]">
+      <div class="flex-1 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 flex flex-col min-h-[400px]">
         <h4 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 border-b pb-3 flex justify-between items-center">
             <span class="flex items-center gap-2">
                  <div class="w-2 h-2 rounded-full bg-green-500"></div> Picked Items
@@ -168,11 +168,11 @@
             :key="item.item_code" 
             class="flex justify-between items-center bg-green-50 border border-green-100 p-3 rounded-lg shadow-sm"
           >
-            <div class="font-semibold text-green-800 tracking-wide flex items-center gap-2">
-                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+             <div class="font-semibold text-green-800 dark:text-green-300 tracking-wide flex items-center gap-2">
+                <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                 {{ item.item_code }}
             </div>
-            <div class="text-lg font-black bg-white text-green-700 px-3 py-1 rounded shadow-sm border border-green-200">{{ item.qty }}</div>
+            <div class="text-lg font-black bg-white dark:bg-slate-800 text-green-700 dark:text-green-400 px-3 py-1 rounded shadow-sm border border-green-200 dark:border-green-800">{{ item.qty }}</div>
           </div>
         </div>
         <div v-else class="flex-1 flex flex-col items-center justify-center text-gray-400 h-full opacity-60">
@@ -371,12 +371,28 @@ const submitOrderPick = async () => {
             await apiCall('order_picking.api.api.submit_order_pick', {
                 order_pick_id: orderPickId.value
             });
-            showAlert('Order Pick Submitted & Dispatch Order created!');
-            // Reset page by fetching new session
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-        } catch(e) {}
+            showAlert('Order Pick Submitted successfully! A new Dispatch Order has been created.', 'success');
+            
+            // Clear current states so they know it worked
+            orderPickId.value = null;
+            currentInvoice.value = null;
+            itemsToPick.value = [];
+            pickedItems.value = [];
+            invoiceScan.value = '';
+            itemScan.value = '';
+            
+            // Wait 3 seconds, then fetch the next session transparently
+            setTimeout(async () => {
+                alertMessage.value = ''; // clear success message
+                try {
+                    const id = await apiCall('order_picking.api.api.get_active_order_pick');
+                    orderPickId.value = id;
+                } catch(e) {}
+            }, 3000);
+            
+        } catch(e) {
+            // Error is already handled by apiCall Native Alert
+        }
     }
 };
 
