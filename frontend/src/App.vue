@@ -370,7 +370,6 @@ const markReady = async () => {
 
 const submitOrderPick = async () => {
     if(!orderPickId.value) return;
-    if(confirm("Submit this Order Pick? This will create a Dispatch Order.")) {
         try {
             await apiCall('order_picking.api.api.submit_order_pick', {
                 order_pick_id: orderPickId.value
@@ -385,25 +384,20 @@ const submitOrderPick = async () => {
             invoiceScan.value = '';
             itemScan.value = '';
             
-            // Wait 300ms for UI to clear, then ask user
+            // Wait 300ms for UI to clear, then create new session
             setTimeout(async () => {
                 alertMessage.value = ''; // clear success message early so it doesn't block
-                if(confirm("Session cleared successfully.\n\nDo you want to create a new session with a new Session ID?\n(Click Cancel to exit to ERPNext)")) {
-                    try {
-                        const id = await apiCall('order_picking.api.api.get_active_order_pick', { force_new: 1 });
-                        orderPickId.value = id;
-                        await nextTick();
-                        invoiceInputRef.value?.focus();
-                    } catch(e) {}
-                } else {
-                    backToErp();
-                }
+                try {
+                    const id = await apiCall('order_picking.api.api.get_active_order_pick', { force_new: 1 });
+                    orderPickId.value = id;
+                    await nextTick();
+                    invoiceInputRef.value?.focus();
+                } catch(e) {}
             }, 300);
             
         } catch(e) {
             // Error is already handled by apiCall Native Alert
         }
-    }
 };
 
 const backToErp = () => {
