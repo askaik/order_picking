@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build --base=/assets/order_picking/frontend/ && yarn copy-html-entry",
+        "build": "vite build --base=/assets/order_picking/frontend/ && npm run copy-html-entry",
         "preview": "vite preview",
         "copy-html-entry": "cp ../order_picking/public/frontend/index.html ../order_picking/www/order_picking.html"
     },
