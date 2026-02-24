@@ -83,7 +83,7 @@
 
             <button 
                 v-if="orderPickId && (!currentInvoice || percentage === 100)" 
-                @click="submitOrderPick" 
+                @click="showSubmitConfirm = true" 
                 class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold py-2.5 px-6 rounded-lg text-sm shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg flex items-center gap-2"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
@@ -184,8 +184,30 @@
             <p class="font-medium">No items picked yet.</p>
         </div>
       </div>
-      
     </div>
+
+    <!-- Confirmation Modal -->
+    <Transition name="fade">
+      <div v-if="showSubmitConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 dark:bg-black/60 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
+          <div class="p-6">
+            <div class="flex items-center justify-center w-12 h-12 mx-auto bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-full mb-4">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <h3 class="text-xl font-bold text-center text-gray-900 dark:text-white mb-2">Submit Order Pick?</h3>
+            <p class="text-center text-gray-500 dark:text-slate-400 mb-6 font-medium">This will finalize the picking session and automatically generate the Dispatch Order for shipping.</p>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button @click="showSubmitConfirm = false" class="flex-1 py-3 px-4 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors shadow-sm">
+                Wait, Go Back
+              </button>
+              <button @click="submitOrderPick" class="flex-1 py-3 px-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-md">
+                Yes, Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -201,6 +223,7 @@ const invoiceScan = ref('');
 const itemScan = ref('');
 const isLoading = ref(false);
 const flashSuccess = ref(false);
+const showSubmitConfirm = ref(false);
 
 const invoiceInputRef = ref(null);
 const itemInputRef = ref(null);
@@ -378,7 +401,8 @@ const markReady = async () => {
 
 const submitOrderPick = async () => {
     if(!orderPickId.value) return;
-        try {
+    showSubmitConfirm.value = false;
+    try {
             await apiCall('order_picking.api.api.submit_order_pick', {
                 order_pick_id: orderPickId.value
             });
