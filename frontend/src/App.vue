@@ -287,6 +287,14 @@ const progressColorClass = computed(() => {
 
 // On Mount
 onMounted(async () => {
+    // Detect System Dark Mode
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+    const toggleTheme = (e) => {
+        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+    };
+    toggleTheme(prefersDark);
+    prefersDark.addEventListener('change', toggleTheme);
+
     try {
         const id = await apiCall('order_picking.api.api.get_active_order_pick');
         orderPickId.value = id;
