@@ -78,7 +78,7 @@
             </button>
 
             <button 
-                v-if="percentage === 100 && orderPickId" 
+                v-if="orderPickId && (!currentInvoice || percentage === 100)" 
                 @click="submitOrderPick" 
                 class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold py-2.5 px-6 rounded-lg text-sm shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg flex items-center gap-2"
             >
