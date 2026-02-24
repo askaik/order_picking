@@ -18,8 +18,12 @@
           </p>
         </div>
       </div>
-      <div>
-         <button @click="backToErp" class="text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-md transition-colors shadow-sm ring-1 ring-inset ring-gray-200 flex items-center gap-2">
+      <div class="flex flex-row items-center">
+         <button @click="toggleThemeManual" class="p-2 mr-3 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 dark:text-gray-400 transition-colors" title="Toggle Dark Mode">
+             <svg v-if="isDark" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+             <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+         </button>
+         <button @click="backToErp" class="text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 px-4 py-2 rounded-md transition-colors shadow-sm ring-1 ring-inset ring-gray-200 dark:ring-slate-600 flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             Exit Scanner
         </button>
@@ -205,6 +209,28 @@
       </div>
     </div>
 
+    <!-- Session Summary -->
+    <div class="flex flex-col md:flex-row gap-6 mb-6">
+      <div class="flex-1 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border-2 border-dashed border-gray-200 dark:border-slate-700 flex items-center justify-between">
+         <div>
+            <p class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Orders</p>
+            <h3 class="text-3xl font-black text-gray-800 dark:text-white">{{ completedInvoicesCount }}</h3>
+         </div>
+         <div class="w-12 h-12 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center text-blue-500">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+         </div>
+      </div>
+      <div class="flex-1 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border-2 border-dashed border-gray-200 dark:border-slate-700 flex items-center justify-between">
+         <div>
+            <p class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Items</p>
+            <h3 class="text-3xl font-black text-gray-800 dark:text-white">{{ totalPickedItemsCount }}</h3>
+         </div>
+         <div class="w-12 h-12 rounded-full bg-green-50 dark:bg-slate-700 flex items-center justify-center text-green-500">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+         </div>
+      </div>
+    </div>
+
     <!-- Confirmation Modal -->
     <Transition name="fade">
       <div v-if="showSubmitConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 dark:bg-black/60 backdrop-blur-sm p-4">
@@ -243,6 +269,10 @@ const itemScan = ref('');
 const isLoading = ref(false);
 const flashSuccess = ref(false);
 const showSubmitConfirm = ref(false);
+
+const completedInvoicesCount = ref(0);
+const totalPickedItemsCount = ref(0);
+const isDark = ref(false);
 
 const invoiceInputRef = ref(null);
 const itemInputRef = ref(null);
@@ -327,15 +357,30 @@ const progressColorClass = computed(() => {
   return 'bg-gradient-to-r from-blue-400 to-indigo-500';
 });
 
+const toggleThemeManual = () => {
+    isDark.value = !isDark.value;
+    document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
+    localStorage.setItem('theme_preference', isDark.value ? 'dark' : 'light');
+};
+
 // On Mount
 onMounted(async () => {
     // Detect System Dark Mode
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-    const toggleTheme = (e) => {
-        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-    };
-    toggleTheme(prefersDark);
-    prefersDark.addEventListener('change', toggleTheme);
+    const savedTheme = localStorage.getItem('theme_preference');
+    if (savedTheme) {
+        isDark.value = savedTheme === 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    } else {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        isDark.value = prefersDark.matches;
+        document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
+        prefersDark.addEventListener('change', (e) => {
+            if (!localStorage.getItem('theme_preference')) {
+                isDark.value = e.matches;
+                document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+            }
+        });
+    }
 
     try {
         const id = await apiCall('order_picking.api.api.get_active_order_pick');
@@ -412,6 +457,9 @@ const markReady = async () => {
             order_pick_id: orderPickId.value 
         });
         showAlert('Invoice attached to Order Pick & Marked Ready!');
+        completedInvoicesCount.value++;
+        totalPickedItemsCount.value += pickedItems.value.reduce((acc, obj) => acc + obj.qty, 0);
+        
         currentInvoice.value = null;
         itemsToPick.value = [];
         pickedItems.value = [];
@@ -436,6 +484,8 @@ const submitOrderPick = async () => {
             pickedItems.value = [];
             invoiceScan.value = '';
             itemScan.value = '';
+            completedInvoicesCount.value = 0;
+            totalPickedItemsCount.value = 0;
             
             // Wait 300ms for UI to clear, then create new session
             setTimeout(async () => {
