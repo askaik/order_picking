@@ -8,9 +8,13 @@
         </div>
         <div>
           <h1 class="text-xl font-bold text-gray-800 dark:text-slate-100">Order Picking</h1>
-          <p class="text-xs text-gray-500 font-medium tracking-wide flex items-center gap-1">
-            <span v-if="orderPickId">Session: <span class="text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded">{{ orderPickId }}</span></span>
-            <span v-else class="text-gray-400">Loading Session...</span>
+          <p class="text-xs text-gray-500 dark:text-gray-400 font-medium tracking-wide flex items-center gap-1">
+            <span v-if="orderPickId">Session: 
+                <a :href="'/app/order-pick/' + orderPickId" target="_blank" class="text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/40 px-1.5 py-0.5 rounded hover:underline hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors">
+                    {{ orderPickId }}
+                </a>
+            </span>
+            <span v-else class="text-gray-400 dark:text-gray-500">Loading Session...</span>
           </p>
         </div>
       </div>
@@ -373,7 +377,7 @@ const submitOrderPick = async () => {
             });
             showAlert('Order Pick Submitted successfully! A new Dispatch Order has been created.', 'success');
             
-            // Clear current states so they know it worked
+            // Clear current states 
             orderPickId.value = null;
             currentInvoice.value = null;
             itemsToPick.value = [];
@@ -381,14 +385,20 @@ const submitOrderPick = async () => {
             invoiceScan.value = '';
             itemScan.value = '';
             
-            // Wait 3 seconds, then fetch the next session transparently
+            // Wait 300ms for UI to clear, then ask user
             setTimeout(async () => {
-                alertMessage.value = ''; // clear success message
-                try {
-                    const id = await apiCall('order_picking.api.api.get_active_order_pick');
-                    orderPickId.value = id;
-                } catch(e) {}
-            }, 3000);
+                alertMessage.value = ''; // clear success message early so it doesn't block
+                if(confirm("Session cleared successfully.\n\nDo you want to create a new session with a new Session ID?\n(Click Cancel to exit to ERPNext)")) {
+                    try {
+                        const id = await apiCall('order_picking.api.api.get_active_order_pick', { force_new: 1 });
+                        orderPickId.value = id;
+                        await nextTick();
+                        invoiceInputRef.value?.focus();
+                    } catch(e) {}
+                } else {
+                    backToErp();
+                }
+            }, 300);
             
         } catch(e) {
             // Error is already handled by apiCall Native Alert
