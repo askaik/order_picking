@@ -121,5 +121,5 @@ def submit_order_pick(order_pick_id):
 		return {"status": "success"}
 	except Exception as e:
 		frappe.log_error(frappe.get_traceback(), "Order Pick Submit Error")
-		return {"error": f"Submission failed: {str(e)}"}
+		frappe.throw(f"Submission failed: {str(e)}")
 
