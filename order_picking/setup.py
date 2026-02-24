@@ -17,7 +17,9 @@ def setup_custom_fields():
 				"label": "Ready to Dispatch",
 				"fieldtype": "Check",
 				"insert_after": "status",
-				"read_only": 1
+				"read_only": 1,
+				"in_list_view": 1,
+				"in_standard_filter": 1
 			}
 		]
 	}

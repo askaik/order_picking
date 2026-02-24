@@ -20,6 +20,10 @@ def get_invoice_items(scan_input):
 
 		invoice_doc = frappe.get_doc("Sales Invoice", invoice_name)
 		
+		# Prevent scanning if already picked and ready
+		if getattr(invoice_doc, "custom_ready_to_dispatch", 0) == 1:
+			return {"error": f"Sales Invoice {invoice_name} has already been marked as picked!"}
+
 		items_to_pick = {}
 
 		# Safe extraction of packed items
