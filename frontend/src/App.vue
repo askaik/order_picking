@@ -145,10 +145,21 @@
           <div 
             v-for="item in itemsToPick.filter(i => i.qty > 0)" 
             :key="item.item_code" 
-            class="flex justify-between items-center bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 p-3 rounded-lg hover:border-blue-200 hover:shadow-sm transition-all group"
+            class="flex justify-between items-center bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 p-3 rounded-lg hover:border-blue-200 hover:shadow-sm transition-all group gap-3"
           >
-            <div class="font-semibold text-gray-800 dark:text-slate-100 tracking-wide">{{ item.item_code }}</div>
-            <div class="text-lg font-black bg-white dark:bg-slate-800 px-3 py-1 rounded shadow-sm border border-gray-200 dark:border-slate-500 group-hover:border-blue-300 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">{{ item.qty }}</div>
+            <div class="flex items-center gap-3 overflow-hidden">
+              <div v-if="item.image" class="w-12 h-12 flex-shrink-0 bg-white dark:bg-slate-800 rounded-md p-1 border border-gray-200 dark:border-slate-500 overflow-hidden flex items-center justify-center">
+                <img :src="item.image" class="max-w-full max-h-full object-contain" :alt="item.item_code">
+              </div>
+              <div v-else class="w-12 h-12 flex-shrink-0 bg-gray-100 dark:bg-slate-600 rounded-md p-1 border border-gray-200 dark:border-slate-500 flex items-center justify-center text-gray-400 dark:text-slate-400">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              </div>
+              <div class="flex flex-col overflow-hidden">
+                <div class="font-bold text-gray-800 dark:text-slate-100 tracking-wide truncate">{{ item.item_code }}</div>
+                <div class="text-xs text-gray-500 dark:text-slate-400 truncate w-full" :title="item.item_name">{{ item.item_name || 'No Name' }}</div>
+              </div>
+            </div>
+            <div class="text-lg font-black bg-white dark:bg-slate-800 px-3 py-1 rounded shadow-sm border border-gray-200 dark:border-slate-500 group-hover:border-blue-300 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors flex-shrink-0">{{ item.qty }}</div>
           </div>
         </div>
         <div v-else class="flex-1 flex flex-col items-center justify-center text-gray-400 h-full opacity-60">
@@ -170,13 +181,21 @@
           <div 
             v-for="item in pickedItems" 
             :key="item.item_code" 
-            class="flex justify-between items-center bg-green-50 border border-green-100 p-3 rounded-lg shadow-sm"
+            class="flex justify-between items-center bg-green-50 border border-green-100 p-3 rounded-lg shadow-sm gap-3"
           >
-             <div class="font-semibold text-green-800 dark:text-green-300 tracking-wide flex items-center gap-2">
-                <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                {{ item.item_code }}
+            <div class="flex items-center gap-3 overflow-hidden">
+              <div v-if="item.image" class="w-10 h-10 flex-shrink-0 bg-white dark:bg-slate-800 rounded-md border border-green-200 dark:border-green-800 overflow-hidden p-0.5 flex items-center justify-center">
+                <img :src="item.image" class="max-w-full max-h-full object-contain" :alt="item.item_code">
+              </div>
+              <div class="flex flex-col overflow-hidden">
+                 <div class="font-bold text-green-800 dark:text-green-300 tracking-wide flex items-center gap-1.5 truncate">
+                    <svg class="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <span class="truncate">{{ item.item_code }}</span>
+                </div>
+                <div class="text-xs text-green-700/80 dark:text-green-400/80 truncate w-full" :title="item.item_name">{{ item.item_name || 'No Name' }}</div>
+              </div>
             </div>
-            <div class="text-lg font-black bg-white dark:bg-slate-800 text-green-700 dark:text-green-400 px-3 py-1 rounded shadow-sm border border-green-200 dark:border-green-800">{{ item.qty }}</div>
+            <div class="text-lg font-black bg-white dark:bg-slate-800 text-green-700 dark:text-green-400 px-3 py-1 rounded shadow-sm border border-green-200 dark:border-green-800 flex-shrink-0">{{ item.qty }}</div>
           </div>
         </div>
         <div v-else class="flex-1 flex flex-col items-center justify-center text-gray-400 h-full opacity-60">
@@ -366,6 +385,8 @@ const handleItemScan = () => {
       } else {
           pickedItems.value.push({
               item_code: itemsToPick.value[foundIndex].item_code,
+              item_name: itemsToPick.value[foundIndex].item_name,
+              image: itemsToPick.value[foundIndex].image,
               qty: 1
           });
       }

@@ -39,7 +39,13 @@ def get_invoice_items(scan_input):
 				
 			if i_code not in bundle_parent_items:
 				if i_code not in items_to_pick:
-					items_to_pick[i_code] = {"qty": 0, "barcode": barcode}
+					item_info = frappe.db.get_value("Item", i_code, ["item_name", "image"], as_dict=True) or {}
+					items_to_pick[i_code] = {
+						"qty": 0, 
+						"barcode": barcode,
+						"item_name": getattr(item, "item_name", "") or item_info.get("item_name", "Unknown"),
+						"image": getattr(item, "image", "") or item_info.get("image", "")
+					}
 				items_to_pick[i_code]["qty"] += getattr(item, "qty", 0)
 				if barcode and not items_to_pick[i_code]["barcode"]:
 					items_to_pick[i_code]["barcode"] = barcode
@@ -48,14 +54,26 @@ def get_invoice_items(scan_input):
 		for p_item in packed_items:
 			p_code = getattr(p_item, "item_code", None) or getattr(p_item, "item_name", "Unknown")
 			if p_code not in items_to_pick:
-				items_to_pick[p_code] = {"qty": 0, "barcode": frappe.db.get_value("Item Barcode", {"parent": p_code}, "barcode") or ""}
+				p_item_info = frappe.db.get_value("Item", p_code, ["item_name", "image"], as_dict=True) or {}
+				items_to_pick[p_code] = {
+					"qty": 0, 
+					"barcode": frappe.db.get_value("Item Barcode", {"parent": p_code}, "barcode") or "",
+					"item_name": getattr(p_item, "item_name", "") or p_item_info.get("item_name", "Unknown"),
+					"image": getattr(p_item, "image", "") or p_item_info.get("image", "")
+				}
 			items_to_pick[p_code]["qty"] += getattr(p_item, "qty", 0)
 
 		# Format response
 		return {
 			"invoice_name": invoice_doc.name,
 			"po_no": getattr(invoice_doc, "po_no", ""),
-			"items": [{"item_code": k, "qty": v["qty"], "barcode": v["barcode"]} for k, v in items_to_pick.items() if v["qty"] > 0]
+			"items": [{
+				"item_code": k, 
+				"qty": v["qty"], 
+				"barcode": v["barcode"],
+				"item_name": v["item_name"],
+				"image": v["image"]
+			} for k, v in items_to_pick.items() if v["qty"] > 0]
 		}
 
 	except Exception as e:
