@@ -234,9 +234,15 @@
     <!-- User Footer -->
     <div class="flex justify-center items-center mt-2 mb-8">
       <div class="bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-6 py-3 rounded-full shadow-sm flex items-center gap-3">
-        <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold">
+        
+        <!-- Avatar Slot -->
+        <div v-if="userImage" class="w-8 h-8 rounded-full overflow-hidden border border-gray-300 dark:border-slate-600 shadow-sm flex-shrink-0">
+            <img :src="userImage" class="w-full h-full object-cover" alt="User Avatar" />
+        </div>
+        <div v-else class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold flex-shrink-0">
            {{ userName.charAt(0).toUpperCase() }}
         </div>
+        
         <div class="text-sm font-medium text-gray-600 dark:text-gray-300">
           Picker: <span class="font-bold text-gray-900 dark:text-white">{{ userName }}</span>
         </div>
@@ -286,6 +292,7 @@ const completedInvoicesCount = ref(0);
 const totalPickedItemsCount = ref(0);
 const isDark = ref(false);
 const userName = ref('');
+const userImage = ref('');
 
 const invoiceInputRef = ref(null);
 const itemInputRef = ref(null);
@@ -402,6 +409,7 @@ onMounted(async () => {
         const data = await apiCall('order_picking.api.api.get_active_order_pick');
         orderPickId.value = data.order_pick_id;
         if(data.user_name) userName.value = data.user_name;
+        if(data.user_image) userImage.value = data.user_image;
     } catch (e) {
         console.error("Failed to fetch session", e);
     }
@@ -511,6 +519,7 @@ const submitOrderPick = async () => {
                     const data = await apiCall('order_picking.api.api.get_active_order_pick', { force_new: 1 });
                     orderPickId.value = data.order_pick_id;
                     if(data.user_name) userName.value = data.user_name;
+                    if(data.user_image) userImage.value = data.user_image;
                     await nextTick();
                     invoiceInputRef.value?.focus();
                 } catch(e) {}
