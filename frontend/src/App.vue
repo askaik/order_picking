@@ -210,7 +210,7 @@
     </div>
 
     <!-- Session Summary -->
-    <div class="flex flex-col md:flex-row gap-6 mb-6">
+    <div class="flex flex-col md:flex-row gap-6 mb-6 mt-8">
       <div class="flex-1 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border-2 border-dashed border-gray-200 dark:border-slate-700 flex items-center justify-between">
          <div>
             <p class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Orders</p>
@@ -228,6 +228,18 @@
          <div class="w-12 h-12 rounded-full bg-green-50 dark:bg-slate-700 flex items-center justify-center text-green-500">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
          </div>
+      </div>
+    </div>
+
+    <!-- User Footer -->
+    <div class="flex justify-center items-center mt-2 mb-8">
+      <div class="bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-6 py-3 rounded-full shadow-sm flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold">
+           {{ userName.charAt(0).toUpperCase() }}
+        </div>
+        <div class="text-sm font-medium text-gray-600 dark:text-gray-300">
+          Picker: <span class="font-bold text-gray-900 dark:text-white">{{ userName }}</span>
+        </div>
       </div>
     </div>
 
@@ -273,6 +285,7 @@ const showSubmitConfirm = ref(false);
 const completedInvoicesCount = ref(0);
 const totalPickedItemsCount = ref(0);
 const isDark = ref(false);
+const userName = ref('');
 
 const invoiceInputRef = ref(null);
 const itemInputRef = ref(null);
@@ -381,6 +394,9 @@ onMounted(async () => {
             }
         });
     }
+    
+    // Set User Name
+    userName.value = window?.frappe?.boot?.user?.fullname || window?.frappe?.session?.user || 'Unknown User';
 
     try {
         const id = await apiCall('order_picking.api.api.get_active_order_pick');
