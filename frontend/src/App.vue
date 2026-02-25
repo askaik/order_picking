@@ -23,9 +23,9 @@
              <svg v-if="isDark" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
              <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
          </button>
-         <button @click="backToErp" class="text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 px-4 py-2 rounded-md transition-colors shadow-sm ring-1 ring-inset ring-gray-200 dark:ring-slate-600 flex items-center gap-2">
+         <button @click="backToErp" class="text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 px-4 py-2 rounded-md transition-colors shadow-sm ring-1 ring-inset ring-gray-200 dark:ring-slate-600 flex items-center gap-2" title="Exit (Esc)">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-            Exit Scanner
+            Exit Scanner <span class="hidden md:inline text-xs text-gray-400 dark:text-slate-500 ml-1 border border-gray-300 dark:border-slate-500 rounded px-1">Esc</span>
         </button>
       </div>
     </div>
@@ -83,6 +83,7 @@
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
               Mark Ready & Next
+              <span class="text-xs bg-black/20 px-1.5 py-0.5 rounded ml-1 tracking-widest text-white/90 shadow-inner">F2</span>
             </button>
 
             <button 
@@ -92,6 +93,7 @@
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
               Submit Order Pick
+              <span class="text-xs bg-black/20 px-1.5 py-0.5 rounded ml-1 tracking-widest text-white/90 shadow-inner">F4</span>
             </button>
         </div>
       </div>
@@ -109,7 +111,7 @@
           type="text" 
           id="scan_invoice_input" 
           class="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 dark:border-slate-600 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-sm font-medium bg-white dark:bg-slate-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500" 
-          placeholder="Scan Invoice Barcode..." 
+          placeholder="Scan Invoice Barcode... (Ctrl+F)" 
           :disabled="isLoading"
           ref="invoiceInputRef"
         >
@@ -126,7 +128,7 @@
           id="scan_item_input" 
           :class="{'ring-4 ring-green-400/50 bg-green-50': flashSuccess, 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/20': !flashSuccess}"
           class="w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:ring-4 transition-all shadow-sm font-medium bg-white dark:bg-slate-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 disabled:bg-gray-100 dark:disabled:bg-slate-900 disabled:cursor-not-allowed disabled:border-gray-200 dark:disabled:border-slate-700" 
-          placeholder="Scan Item Barcode..." 
+          placeholder="Scan Item Barcode... (Ctrl+R)" 
           :disabled="!currentInvoice || percentage === 100 || isLoading"
           ref="itemInputRef"
         >
@@ -260,11 +262,13 @@
             <h3 class="text-xl font-bold text-center text-gray-900 dark:text-white mb-2">Submit Order Pick?</h3>
             <p class="text-center text-gray-500 dark:text-slate-400 mb-6 font-medium">This will finalize the picking session and automatically generate the Dispatch Order for shipping.</p>
             <div class="flex flex-col sm:flex-row gap-3">
-              <button @click="showSubmitConfirm = false" class="flex-1 py-3 px-4 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors shadow-sm">
+              <button @click="showSubmitConfirm = false" class="flex-1 py-3 px-4 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors shadow-sm relative group">
                 Wait, Go Back
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 dark:text-slate-500 border border-current rounded px-1 opacity-0 group-hover:opacity-100 transition-opacity">Esc</span>
               </button>
-              <button @click="submitOrderPick" class="flex-1 py-3 px-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-md">
+              <button @click="submitOrderPick" class="flex-1 py-3 px-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-md relative">
                 Yes, Submit
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] bg-black/20 px-1 rounded shadow-inner">F4</span>
               </button>
             </div>
           </div>
@@ -275,7 +279,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 
 // State
 const orderPickId = ref(null);
@@ -380,11 +384,53 @@ const progressColorClass = computed(() => {
 const toggleThemeManual = () => {
     isDark.value = !isDark.value;
     document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
-    localStorage.setItem('theme_preference', isDark.value ? 'dark' : 'light');
+        localStorage.setItem('theme_preference', isDark.value ? 'dark' : 'light');
+};
+
+// Global Keyboard Handler
+const handleKeydown = (e) => {
+    // Esc: Exit Scanner / Cancel Modal
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        if (showSubmitConfirm.value) {
+            showSubmitConfirm.value = false;
+        } else {
+            backToErp();
+        }
+    }
+    // F2: Mark Ready & Next
+    else if (e.key === 'F2') {
+        e.preventDefault();
+        if (percentage.value === 100 && currentInvoice.value) {
+            markReady();
+        }
+    }
+    // F4: Submit Order Pick / Yes, Submit in Modal
+    else if (e.key === 'F4') {
+        e.preventDefault();
+        if (showSubmitConfirm.value) {
+            submitOrderPick();
+        } else if (orderPickId.value && (!currentInvoice.value || percentage.value === 100)) {
+            showSubmitConfirm.value = true;
+        }
+    }
+    // Ctrl+F / Cmd+F: Focus Scan Invoice Barcode
+    else if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault();
+        invoiceInputRef.value?.focus();
+    }
+    // Ctrl+R / Cmd+R: Focus Scan Item Barcode
+    else if ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R')) {
+        e.preventDefault();
+        itemInputRef.value?.focus();
+    }
 };
 
 // On Mount
 onMounted(async () => {
+    // Bind Keyboard Shortcuts
+    window.addEventListener('keydown', handleKeydown);
+
     // Detect System Dark Mode
     const savedTheme = localStorage.getItem('theme_preference');
     if (savedTheme) {
@@ -414,6 +460,10 @@ onMounted(async () => {
         console.error("Failed to fetch session", e);
     }
     invoiceInputRef.value?.focus();
+});
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeydown);
 });
 
 // Handlers
