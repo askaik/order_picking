@@ -83,19 +83,31 @@ def get_invoice_items(scan_input):
 @frappe.whitelist()
 def get_active_order_pick(force_new=0):
 	"""
-	Returns the current Draft Order Pick session for the user, or creates one.
+	Returns the current Draft Order Pick session for the user, or creates one, along with the user's name.
 	"""
+	user_info = frappe.db.get_value("User", frappe.session.user, ["full_name", "user_image"], as_dict=True) or {}
+	user_name = user_info.get("full_name") or frappe.session.user
+	user_image = user_info.get("user_image") or ""
+	
 	if not int(force_new):
 		active_picks = frappe.get_all("Order Pick", filters={"docstatus": 0, "owner": frappe.session.user}, limit=1)
 		if active_picks:
-			return active_picks[0].name
+			return {
+				"order_pick_id": active_picks[0].name,
+				"user_name": user_name,
+				"user_image": user_image
+			}
 
-	new_pick = frappe.new_doc("Order Pick")
 	new_pick = frappe.new_doc("Order Pick")
 	new_pick.picking_date = frappe.utils.now()
 	new_pick.picked_by = frappe.session.user
 	new_pick.insert(ignore_permissions=True)
-	return new_pick.name
+	
+	return {
+		"order_pick_id": new_pick.name,
+		"user_name": user_name,
+		"user_image": user_image
+	}
 
 @frappe.whitelist()
 def mark_invoice_as_ready(invoice_name, order_pick_id=None):
