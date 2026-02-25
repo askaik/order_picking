@@ -395,12 +395,13 @@ onMounted(async () => {
         });
     }
     
-    // Set User Name
+    // Set User Name default
     userName.value = window?.frappe?.boot?.user?.fullname || window?.frappe?.session?.user || 'Unknown User';
 
     try {
-        const id = await apiCall('order_picking.api.api.get_active_order_pick');
-        orderPickId.value = id;
+        const data = await apiCall('order_picking.api.api.get_active_order_pick');
+        orderPickId.value = data.order_pick_id;
+        if(data.user_name) userName.value = data.user_name;
     } catch (e) {
         console.error("Failed to fetch session", e);
     }
@@ -507,8 +508,9 @@ const submitOrderPick = async () => {
             setTimeout(async () => {
                 alertMessage.value = ''; // clear success message early so it doesn't block
                 try {
-                    const id = await apiCall('order_picking.api.api.get_active_order_pick', { force_new: 1 });
-                    orderPickId.value = id;
+                    const data = await apiCall('order_picking.api.api.get_active_order_pick', { force_new: 1 });
+                    orderPickId.value = data.order_pick_id;
+                    if(data.user_name) userName.value = data.user_name;
                     await nextTick();
                     invoiceInputRef.value?.focus();
                 } catch(e) {}
