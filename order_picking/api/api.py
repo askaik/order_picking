@@ -25,6 +25,7 @@ def get_invoice_items(scan_input):
 			return {"error": f"Sales Invoice {invoice_name} has already been marked as picked!"}
 
 		items_to_pick = {}
+		EXCLUDED_ITEMS = {"SRV-001"}
 
 		# Safe extraction of packed items
 		packed_items = invoice_doc.get("packed_items") or []
@@ -33,10 +34,12 @@ def get_invoice_items(scan_input):
 		# Safe extraction of normal items
 		for item in invoice_doc.get("items") or []:
 			i_code = getattr(item, "item_code", None) or getattr(item, "item_name", "Unknown")
+			if i_code in EXCLUDED_ITEMS:
+				continue
 			barcode = getattr(item, "barcode", "")
 			if not barcode and i_code:
 				barcode = frappe.db.get_value("Item Barcode", {"parent": i_code}, "barcode") or ""
-				
+
 			if i_code not in bundle_parent_items:
 				if i_code not in items_to_pick:
 					item_info = frappe.db.get_value("Item", i_code, ["item_name", "image"], as_dict=True) or {}
@@ -53,6 +56,8 @@ def get_invoice_items(scan_input):
 		# Include packed items safely
 		for p_item in packed_items:
 			p_code = getattr(p_item, "item_code", None) or getattr(p_item, "item_name", "Unknown")
+			if p_code in EXCLUDED_ITEMS:
+				continue
 			if p_code not in items_to_pick:
 				p_item_info = frappe.db.get_value("Item", p_code, ["item_name", "image"], as_dict=True) or {}
 				items_to_pick[p_code] = {
