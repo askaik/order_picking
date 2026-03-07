@@ -5,8 +5,8 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "npx vite build --base=/assets/order_picking/frontend/ && npm run copy-html-entry",
-        "preview": "npx vite preview",
+        "build": "node node_modules/vite/bin/vite.js build --base=/assets/order_picking/frontend/ && npm run copy-html-entry",
+        "preview": "node node_modules/vite/bin/vite.js preview",
         "copy-html-entry": "node -e \"require('fs').copyFileSync('../order_picking/public/frontend/index.html', '../order_picking/www/order_picking.html')\""
     },
     "dependencies": {
