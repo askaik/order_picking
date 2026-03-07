@@ -32,4 +32,4 @@ def get_boot():
     boot_json = frappe.as_json(boot, indent=None, separators=(",", ":"))
     boot_json = SCRIPT_TAG_PATTERN.sub("", boot_json)
     boot_json = CLOSING_SCRIPT_TAG_PATTERN.sub("", boot_json)
-    return json.dumps(boot_json)
+    return boot_json

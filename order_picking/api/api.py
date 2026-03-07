@@ -89,7 +89,7 @@ def get_active_order_pick(force_new=0):
 	user_name = user_info.get("full_name") or frappe.session.user
 	user_image = user_info.get("user_image") or ""
 	
-	if not int(force_new):
+	if not frappe.utils.cint(force_new):
 		active_picks = frappe.get_all("Order Pick", filters={"docstatus": 0, "owner": frappe.session.user}, limit=1)
 		if active_picks:
 			return {
@@ -124,6 +124,8 @@ def mark_invoice_as_ready(invoice_name, order_pick_id=None):
 	# Attach to the active session
 	if order_pick_id:
 		order_pick = frappe.get_doc("Order Pick", order_pick_id)
+		if order_pick.owner != frappe.session.user:
+			frappe.throw(_("You are not authorized to modify this Order Pick session."))
 		# Ensure it's not already added
 		exists = next((i for i in order_pick.invoices if i.sales_invoice == invoice_name), None)
 		if not exists:

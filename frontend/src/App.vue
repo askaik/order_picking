@@ -344,7 +344,6 @@ const apiCall = async (method, args = {}) => {
     return data.message;
   } catch (error) {
     showAlert(error.message, 'error');
-    alert(`Backend Error: ${error.message}`);
     throw error;
   } finally {
     isLoading.value = false;
@@ -564,7 +563,6 @@ const submitOrderPick = async () => {
             
             // Wait 300ms for UI to clear, then create new session
             setTimeout(async () => {
-                alertMessage.value = ''; // clear success message early so it doesn't block
                 try {
                     const data = await apiCall('order_picking.api.api.get_active_order_pick', { force_new: 1 });
                     orderPickId.value = data.order_pick_id;
