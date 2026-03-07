@@ -72,6 +72,7 @@ def get_invoice_items(scan_input):
 		return {
 			"invoice_name": invoice_doc.name,
 			"po_no": getattr(invoice_doc, "po_no", ""),
+			"status": getattr(invoice_doc, "status", ""),
 			"items": [{
 				"item_code": k, 
 				"qty": v["qty"], 
@@ -160,3 +161,23 @@ def submit_order_pick(order_pick_id):
 		frappe.log_error(frappe.get_traceback(), "Order Pick Submit Error")
 		frappe.throw(f"Submission failed: {str(e)}")
 
+
+@frappe.whitelist()
+def submit_sales_invoice(invoice_name):
+	"""
+	Submits the given Sales Invoice from the UI if it is in Draft status.
+	"""
+	try:
+		doc = frappe.get_doc("Sales Invoice", invoice_name)
+		if doc.docstatus == 0:
+			doc.submit()
+			# Fetch the updated status
+			new_status = frappe.db.get_value("Sales Invoice", invoice_name, "status")
+			return {"status": "success", "new_status": new_status}
+		else:
+			return {"error": f"Sales Invoice {invoice_name} is already submitted."}
+	except frappe.exceptions.ValidationError as e:
+		frappe.throw(str(e))
+	except Exception as e:
+		frappe.log_error(frappe.get_traceback(), f"Sales Invoice Submit Error: {invoice_name}")
+		return {"error": f"Submission failed: {str(e)}"}

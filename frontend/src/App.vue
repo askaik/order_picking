@@ -69,10 +69,29 @@
       </div>
       
       <div class="flex justify-between items-center mt-4 h-12">
-        <div class="text-sm font-medium text-gray-500 bg-gray-50 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-md border border-gray-100 dark:border-slate-600 shadow-sm" v-if="currentInvoice">
-            Active: <span class="font-bold text-gray-800 dark:text-white">{{ currentInvoice }}</span>
+        <div class="flex items-center gap-3">
+          <div class="text-sm font-medium text-gray-500 bg-gray-50 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-md border border-gray-100 dark:border-slate-600 shadow-sm" v-if="currentInvoice">
+              Active: <span class="font-bold text-gray-800 dark:text-white">{{ currentInvoice }}</span>
+          </div>
+          <div v-if="currentInvoiceStatus" :class="statusColorClass" class="text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm border">
+              {{ currentInvoiceStatus }}
+          </div>
+          
+          <div v-if="currentInvoiceStatus === 'Draft'" class="flex items-center gap-3 ml-2">
+			  <div class="text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-3 py-1.5 rounded-md border border-amber-200 dark:border-amber-800 flex items-center gap-1.5 animate-pulse">
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+				Please Consider Submiting The Invoice
+			  </div>
+			  <button @click="submitInvoice" :disabled="isSubmittingInvoice" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-1.5 px-3 rounded-md shadow-sm transition-colors flex items-center gap-1.5 disabled:opacity-50">
+				<svg v-if="isSubmittingInvoice" class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+				</svg>
+				<svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+				{{ isSubmittingInvoice ? 'Submitting...' : 'Submit Invoice' }}
+			  </button>
+		  </div>
         </div>
-        <div v-else></div>
 
          <!-- Action Buttons -->
         <div class="flex gap-3">
@@ -284,11 +303,13 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 // State
 const orderPickId = ref(null);
 const currentInvoice = ref(null);
+const currentInvoiceStatus = ref(null);
 const itemsToPick = ref([]);
 const pickedItems = ref([]);
 const invoiceScan = ref('');
 const itemScan = ref('');
 const isLoading = ref(false);
+const isSubmittingInvoice = ref(false);
 const flashSuccess = ref(false);
 const showSubmitConfirm = ref(false);
 
@@ -378,6 +399,15 @@ const percentage = computed(() => {
 const progressColorClass = computed(() => {
   if (percentage.value === 100) return 'bg-gradient-to-r from-green-400 to-green-500';
   return 'bg-gradient-to-r from-blue-400 to-indigo-500';
+});
+
+const statusColorClass = computed(() => {
+	const status = currentInvoiceStatus.value;
+	if (status === 'Draft') return 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800';
+	if (status === 'Paid') return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/40 dark:text-green-400 dark:border-green-800';
+	if (status === 'Unpaid' || status === 'Overdue') return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-400 dark:border-red-800';
+	if (status === 'Return') return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600';
+	return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-400 dark:border-blue-800';
 });
 
 const toggleThemeManual = () => {
@@ -474,6 +504,7 @@ const handleInvoiceScan = async () => {
     const data = await apiCall('order_picking.api.api.get_invoice_items', { scan_input: val });
     if(data) {
         currentInvoice.value = data.invoice_name;
+        currentInvoiceStatus.value = data.status || null;
         // Deep copy
         itemsToPick.value = JSON.parse(JSON.stringify(data.items));
         pickedItems.value = [];
@@ -535,6 +566,7 @@ const markReady = async () => {
         totalPickedItemsCount.value += pickedItems.value.reduce((acc, obj) => acc + obj.qty, 0);
         
         currentInvoice.value = null;
+        currentInvoiceStatus.value = null;
         itemsToPick.value = [];
         pickedItems.value = [];
         await nextTick();
@@ -554,6 +586,7 @@ const submitOrderPick = async () => {
             // Clear current states 
             orderPickId.value = null;
             currentInvoice.value = null;
+            currentInvoiceStatus.value = null;
             itemsToPick.value = [];
             pickedItems.value = [];
             invoiceScan.value = '';
@@ -580,6 +613,30 @@ const submitOrderPick = async () => {
 
 const backToErp = () => {
     window.location.href = '/app/workspace/Order%20Picking';
+};
+
+const submitInvoice = async () => {
+	if (!currentInvoice.value) return;
+	
+	isSubmittingInvoice.value = true;
+	try {
+		const data = await apiCall('order_picking.api.api.submit_sales_invoice', {
+			invoice_name: currentInvoice.value
+		});
+		showAlert(`Sales Invoice ${currentInvoice.value} submitted successfully!`, 'success');
+		if (data && data.new_status) {
+			currentInvoiceStatus.value = data.new_status;
+		} else {
+			// Fallback if status wasn't returned
+			currentInvoiceStatus.value = 'Unpaid'; 
+		}
+		await nextTick();
+        itemInputRef.value?.focus();
+	} catch (e) {
+		// Native alert handles error output
+	} finally {
+		isSubmittingInvoice.value = false;
+	}
 };
 
 </script>
