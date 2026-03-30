@@ -391,7 +391,9 @@ const percentage = computed(() => {
   const totalPicked = pickedItems.value.reduce((a, o) => a + o.qty, 0);
   const total = totalRemaining + totalPicked;
   if (total === 0) return 0;
-  return Math.round((totalPicked / total) * 100);
+  // Only show 100% when truly complete — prevents premature scanner disable
+  if (totalRemaining === 0) return 100;
+  return Math.min(99, Math.floor((totalPicked / total) * 100));
 });
 
 const stepClass = (step) => {
@@ -413,7 +415,11 @@ onMounted(async () => {
     costCenters.value = data.cost_centers || [];
   } catch(e) {}
   const today = new Date();
-  requiredByDate.value = today.toISOString().split('T')[0];
+  // Use local date to avoid timezone mismatch with server transaction date
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  requiredByDate.value = `${yyyy}-${mm}-${dd}`;
   await nextTick();
   soInputRef.value?.focus();
 });
@@ -600,7 +606,10 @@ const createSE = async () => {
     pickingLog.value = [];
     showLog.value = false;
     const today = new Date();
-    requiredByDate.value = today.toISOString().split('T')[0];
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    requiredByDate.value = `${yyyy}-${mm}-${dd}`;
     await nextTick();
     soInputRef.value?.focus();
   } catch(e) {}
