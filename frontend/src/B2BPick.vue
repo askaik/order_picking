@@ -56,25 +56,38 @@
     </div>
 
     <!-- STEP 1: Scan Inputs -->
-    <div v-if="currentStep === 1" class="flex flex-col md:flex-row gap-4 mb-6">
-      <div class="flex-1 relative group">
-        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <svg class="w-6 h-6 text-gray-400 group-focus-within:text-purple-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    <div v-if="currentStep === 1" class="flex flex-col gap-4 mb-6">
+      <div class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1 relative group">
+          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <svg class="w-6 h-6 text-gray-400 group-focus-within:text-purple-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <input v-model="soScan" @keyup.enter="handleSOScan" type="text" id="scan_so_input"
+            class="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 dark:border-slate-600 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all shadow-sm font-medium bg-white dark:bg-slate-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500"
+            placeholder="Scan Sales Order Barcode..."
+            :disabled="isLoading" ref="soInputRef">
         </div>
-        <input v-model="soScan" @keyup.enter="handleSOScan" type="text" id="scan_so_input"
-          class="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 dark:border-slate-600 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all shadow-sm font-medium bg-white dark:bg-slate-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500"
-          placeholder="Scan Sales Order Barcode..."
-          :disabled="isLoading" ref="soInputRef">
-      </div>
-      <div class="flex-1 relative group">
-        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <svg class="w-6 h-6 text-gray-400 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+        <div class="flex flex-row gap-2 flex-1">
+          <div class="flex-1 relative group">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <svg class="w-6 h-6 text-gray-400 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+            </div>
+            <input v-model="itemScan" @keyup.enter="handleItemScan" type="text" id="scan_b2b_item_input"
+              :class="{'ring-4 ring-green-400/50 bg-green-50': flashSuccess, 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/20': !flashSuccess}"
+              class="w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:ring-4 transition-all shadow-sm font-medium bg-white dark:bg-slate-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 disabled:bg-gray-100 dark:disabled:bg-slate-900 disabled:cursor-not-allowed"
+              placeholder="Scan Item Barcode (supports UOM/Box)..."
+              :disabled="!currentSO || percentage === 100 || isLoading" ref="itemInputRef">
+          </div>
+          <!-- Manual Qty Multiplier -->
+          <div class="w-24 flex-shrink-0">
+            <div class="relative">
+              <label class="absolute -top-2 left-2 bg-white dark:bg-slate-800 px-1 text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider z-10">× Qty</label>
+              <input v-model.number="manualQtyMultiplier" type="number" min="1" step="1"
+                class="w-full py-4 px-3 text-lg text-center border-2 border-purple-300 dark:border-purple-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all shadow-sm font-black bg-purple-50 dark:bg-purple-900/30 dark:text-purple-200"
+                :disabled="!currentSO || percentage === 100 || isLoading">
+            </div>
+          </div>
         </div>
-        <input v-model="itemScan" @keyup.enter="handleItemScan" type="text" id="scan_b2b_item_input"
-          :class="{'ring-4 ring-green-400/50 bg-green-50': flashSuccess, 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/20': !flashSuccess}"
-          class="w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:ring-4 transition-all shadow-sm font-medium bg-white dark:bg-slate-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 disabled:bg-gray-100 dark:disabled:bg-slate-900 disabled:cursor-not-allowed"
-          placeholder="Scan Item Barcode (supports UOM/Box)..."
-          :disabled="!currentSO || percentage === 100 || isLoading" ref="itemInputRef">
       </div>
     </div>
 
@@ -146,6 +159,14 @@
           <p class="font-medium">No items picked yet.</p>
         </div>
       </div>
+    </div>
+
+    <!-- Print Button (visible during picking when items exist) -->
+    <div v-if="currentStep === 1 && pickedItems.length > 0" class="flex justify-end mb-4">
+      <button @click="printPickList" class="text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 px-4 py-2 rounded-lg transition-colors shadow-sm ring-1 ring-inset ring-gray-200 dark:ring-slate-600 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+        Print Pick List
+      </button>
     </div>
 
     <!-- Action: Create Material Request (after 100%) -->
@@ -252,6 +273,43 @@
         </div>
       </div>
     </div>
+
+    <!-- Picking History (collapsible) -->
+    <div v-if="pickingLog.length > 0" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 mb-6 overflow-hidden">
+      <button @click="showLog = !showLog" class="w-full p-4 flex justify-between items-center text-sm font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+        <span class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Picking History ({{ pickingLog.length }} scans)
+        </span>
+        <svg class="w-4 h-4 transition-transform" :class="showLog ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div v-if="showLog" class="border-t border-gray-100 dark:border-slate-700 max-h-[300px] overflow-y-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 dark:bg-slate-700 sticky top-0">
+            <tr>
+              <th class="text-left px-4 py-2 text-xs font-bold text-gray-500 uppercase">#</th>
+              <th class="text-left px-4 py-2 text-xs font-bold text-gray-500 uppercase">Time</th>
+              <th class="text-left px-4 py-2 text-xs font-bold text-gray-500 uppercase">Item</th>
+              <th class="text-left px-4 py-2 text-xs font-bold text-gray-500 uppercase">Barcode</th>
+              <th class="text-right px-4 py-2 text-xs font-bold text-gray-500 uppercase">Qty</th>
+              <th class="text-left px-4 py-2 text-xs font-bold text-gray-500 uppercase">UOM Factor</th>
+              <th class="text-right px-4 py-2 text-xs font-bold text-gray-500 uppercase">Multiplier</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(log, idx) in pickingLog" :key="idx" class="border-t border-gray-50 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/50">
+              <td class="px-4 py-2 text-gray-400">{{ idx + 1 }}</td>
+              <td class="px-4 py-2 text-gray-500 font-mono text-xs">{{ log.time }}</td>
+              <td class="px-4 py-2 font-bold text-gray-700 dark:text-slate-200">{{ log.item_code }}</td>
+              <td class="px-4 py-2 text-gray-500 font-mono text-xs">{{ log.barcode }}</td>
+              <td class="px-4 py-2 text-right font-black text-green-700">{{ log.qty }}</td>
+              <td class="px-4 py-2 text-gray-500">{{ log.uom_factor }}</td>
+              <td class="px-4 py-2 text-right text-purple-600 font-bold">×{{ log.multiplier }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -272,6 +330,9 @@ const soScan = ref('');
 const itemScan = ref('');
 const flashSuccess = ref(false);
 const lastScanInfo = ref('');
+const manualQtyMultiplier = ref(1);
+const pickingLog = ref([]);
+const showLog = ref(false);
 
 // Workflow state
 const currentStep = ref(1); // 1=pick, 2=MR draft, 3=SE
@@ -387,14 +448,16 @@ const handleItemScan = () => {
   const val = itemScan.value.trim();
   if (!val) return;
 
+  const multiplier = Math.max(1, Math.floor(manualQtyMultiplier.value || 1));
+
   // Check barcode map first
   const bcEntry = barcodeMap.value[val];
   let matchItemCode = null;
-  let scanQty = 1;
+  let uomFactor = 1;
 
   if (bcEntry) {
     matchItemCode = bcEntry.item_code;
-    scanQty = bcEntry.qty || 1;
+    uomFactor = bcEntry.qty || 1;
   } else {
     // Fallback: match by item_code directly
     const found = itemsToPick.value.find(i => i.item_code === val);
@@ -414,7 +477,8 @@ const handleItemScan = () => {
     return;
   }
 
-  // Cap at remaining qty
+  // Total qty = UOM factor × manual multiplier, capped at remaining
+  const scanQty = uomFactor * multiplier;
   const remaining = itemsToPick.value[foundIndex].qty;
   const actualQty = Math.min(scanQty, remaining);
 
@@ -433,18 +497,54 @@ const handleItemScan = () => {
     });
   }
 
-  lastScanInfo.value = scanQty > 1
-    ? `Scanned ${matchItemCode} × ${actualQty} (UOM: ${scanQty} per scan)${actualQty < scanQty ? ' — capped at remaining qty' : ''}`
-    : `Scanned ${matchItemCode} × 1`;
+  // Log this scan
+  const now = new Date();
+  pickingLog.value.push({
+    time: now.toLocaleTimeString(),
+    item_code: matchItemCode,
+    barcode: val,
+    qty: actualQty,
+    uom_factor: uomFactor > 1 ? `${uomFactor}/scan` : '1 (unit)',
+    multiplier: multiplier
+  });
+
+  lastScanInfo.value = `Scanned ${matchItemCode} × ${actualQty}`
+    + (uomFactor > 1 ? ` (UOM: ${uomFactor} × ${multiplier})` : (multiplier > 1 ? ` (× ${multiplier})` : ''))
+    + (actualQty < scanQty ? ` — capped at remaining` : '');
 
   flashSuccess.value = true;
   setTimeout(() => flashSuccess.value = false, 200);
+
+  // Reset multiplier back to 1 after scan
+  manualQtyMultiplier.value = 1;
 
   if (percentage.value === 100) {
     emit('alert', 'All items picked! Fill warehouse details and create Material Request.', 'success');
   }
 
   itemScan.value = '';
+};
+
+const printPickList = () => {
+  const rows = pickedItems.value.map((item, idx) =>
+    `<tr><td style="padding:6px 12px;border:1px solid #ddd">${idx+1}</td><td style="padding:6px 12px;border:1px solid #ddd;font-weight:bold">${item.item_code}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.item_name||''}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:bold">${item.qty}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.uom||'Nos'}</td></tr>`
+  ).join('');
+  const logRows = pickingLog.value.map((log, idx) =>
+    `<tr><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">${idx+1}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">${log.time}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;font-weight:bold">${log.item_code}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;font-family:monospace">${log.barcode}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;text-align:right;font-weight:bold">${log.qty}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">×${log.multiplier} (${log.uom_factor})</td></tr>`
+  ).join('');
+  const html = `<html><head><title>B2B Pick List — ${currentSO.value}</title><style>body{font-family:system-ui,sans-serif;padding:30px;color:#333}table{border-collapse:collapse;width:100%}th{background:#f3f4f6;text-align:left;padding:8px 12px;border:1px solid #ddd;font-size:12px;text-transform:uppercase}</style></head><body>` +
+    `<h1 style="margin:0 0 4px">B2B Pick List</h1>` +
+    `<p style="color:#666;margin:0 0 4px"><strong>Sales Order:</strong> ${currentSO.value} &nbsp; <strong>Customer:</strong> ${customerName.value} &nbsp; <strong>Status:</strong> ${soStatus.value||'N/A'}</p>` +
+    `<p style="color:#999;margin:0 0 20px;font-size:12px">Printed: ${new Date().toLocaleString()}</p>` +
+    `<h3 style="margin:0 0 8px">Picked Items Summary</h3>` +
+    `<table><thead><tr><th>#</th><th>Item Code</th><th>Item Name</th><th style="text-align:right">Qty</th><th>UOM</th></tr></thead><tbody>${rows}</tbody></table>` +
+    (logRows ? `<h3 style="margin:24px 0 8px">Scan Log</h3><table><thead><tr><th>#</th><th>Time</th><th>Item</th><th>Barcode</th><th style="text-align:right">Qty</th><th>Details</th></tr></thead><tbody>${logRows}</tbody></table>` : '') +
+    `</body></html>`;
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  w.print();
 };
 
 const createMR = async () => {
@@ -496,6 +596,9 @@ const createSE = async () => {
     costCenter.value = '';
     purposeOfTransfer.value = '';
     lastScanInfo.value = '';
+    manualQtyMultiplier.value = 1;
+    pickingLog.value = [];
+    showLog.value = false;
     const today = new Date();
     requiredByDate.value = today.toISOString().split('T')[0];
     await nextTick();
