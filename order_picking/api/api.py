@@ -126,6 +126,7 @@ def mark_invoice_as_ready(invoice_name, order_pick_id=None):
 
 	# Update the field specifically on the database to bypass submit restrictions
 	frappe.db.set_value("Sales Invoice", invoice_name, "custom_ready_to_dispatch", 1)
+	frappe.db.set_value("Sales Invoice", invoice_name, "custom_order_ready_to_dispatch", 1)
 	
 	# Attach to the active session
 	if order_pick_id:
@@ -181,3 +182,248 @@ def submit_sales_invoice(invoice_name):
 	except Exception as e:
 		frappe.log_error(frappe.get_traceback(), f"Sales Invoice Submit Error: {invoice_name}")
 		return {"error": f"Submission failed: {str(e)}"}
+
+
+# ──────────────────────────────────────────────────────────────────────
+# B2B ORDER PICKING — Sales Order + Material Request + Stock Entry
+# ──────────────────────────────────────────────────────────────────────
+
+def get_item_barcode_map(item_codes):
+	"""
+	Build a flat barcode → {item_code, qty} mapping for a list of item codes.
+	Each Item Barcode row has a `uom` field; we look up the conversion_factor
+	from `UOM Conversion Detail` (child of Item) for that UOM.
+	Barcodes without a UOM default to qty=1.
+	Also returns item_code itself and item_name as fallback barcodes with qty=1.
+	"""
+	barcode_map = {}
+	if not item_codes:
+		return barcode_map
+
+	# Fetch all barcodes for the given items
+	barcodes = frappe.get_all(
+		"Item Barcode",
+		filters={"parent": ["in", item_codes]},
+		fields=["parent as item_code", "barcode", "uom"]
+	)
+
+	for bc in barcodes:
+		conversion = 1
+		if bc.uom:
+			cf = frappe.db.get_value(
+				"UOM Conversion Detail",
+				{"parent": bc.item_code, "uom": bc.uom},
+				"conversion_factor"
+			)
+			if cf:
+				conversion = float(cf)
+		barcode_map[bc.barcode] = {
+			"item_code": bc.item_code,
+			"qty": conversion
+		}
+
+	return barcode_map
+
+
+@frappe.whitelist()
+def get_sales_order_items(scan_input):
+	"""
+	Fetch items from a Sales Order given its standard name or po_no.
+	Returns customer name, status, items with pending qty, and a barcode map.
+	"""
+	try:
+		# Resolve by name first
+		so_name = frappe.db.get_value("Sales Order", {"name": scan_input}, "name")
+		if not so_name:
+			so_name = frappe.db.get_value("Sales Order", {"po_no": scan_input}, "name")
+		if not so_name:
+			return {"error": f"Sales Order not found for: {scan_input}"}
+
+		so_doc = frappe.get_doc("Sales Order", so_name)
+
+		# Prevent re-scan if already picked
+		if getattr(so_doc, "custom_b2b_picked", 0) == 1:
+			return {"error": f"Sales Order {so_name} has already been picked by B2B Order Pick!"}
+
+		EXCLUDED_ITEMS = {"SRV-001"}
+		items_to_pick = {}
+
+		for item in so_doc.get("items") or []:
+			i_code = getattr(item, "item_code", None) or getattr(item, "item_name", "Unknown")
+			if i_code in EXCLUDED_ITEMS:
+				continue
+			qty = getattr(item, "qty", 0)
+			if qty <= 0:
+				continue
+
+			if i_code not in items_to_pick:
+				item_info = frappe.db.get_value("Item", i_code, ["item_name", "image", "stock_uom"], as_dict=True) or {}
+				items_to_pick[i_code] = {
+					"qty": 0,
+					"item_name": getattr(item, "item_name", "") or item_info.get("item_name", "Unknown"),
+					"image": getattr(item, "image", "") or item_info.get("image", ""),
+					"uom": getattr(item, "uom", "") or item_info.get("stock_uom", "Nos"),
+				}
+			items_to_pick[i_code]["qty"] += qty
+
+		# Build barcode map for all items
+		barcode_map = get_item_barcode_map(list(items_to_pick.keys()))
+
+		# Also add item_code itself as a barcode with qty=1
+		for i_code in items_to_pick:
+			if i_code not in barcode_map:
+				barcode_map[i_code] = {"item_code": i_code, "qty": 1}
+
+		return {
+			"so_name": so_doc.name,
+			"customer_name": getattr(so_doc, "customer_name", "") or getattr(so_doc, "customer", ""),
+			"status": getattr(so_doc, "status", ""),
+			"items": [{
+				"item_code": k,
+				"qty": v["qty"],
+				"item_name": v["item_name"],
+				"image": v["image"],
+				"uom": v["uom"],
+			} for k, v in items_to_pick.items() if v["qty"] > 0],
+			"barcode_map": barcode_map
+		}
+
+	except Exception as e:
+		frappe.log_error(frappe.get_traceback(), f"B2B Order Picking Error: {scan_input}")
+		return {"error": f"Backend Error: {str(e)}"}
+
+
+@frappe.whitelist()
+def get_warehouses_and_cost_centers():
+	"""Return active warehouses and cost centers for dropdown selection."""
+	warehouses = frappe.get_all(
+		"Warehouse",
+		filters={"is_group": 0, "disabled": 0},
+		fields=["name"],
+		order_by="name asc",
+		limit_page_length=0
+	)
+	cost_centers = frappe.get_all(
+		"Cost Center",
+		filters={"is_group": 0, "disabled": 0},
+		fields=["name"],
+		order_by="name asc",
+		limit_page_length=0
+	)
+	return {
+		"warehouses": [w.name for w in warehouses],
+		"cost_centers": [c.name for c in cost_centers]
+	}
+
+
+@frappe.whitelist()
+def create_b2b_material_request(so_name, items, source_warehouse, target_warehouse, required_by_date):
+	"""
+	Create a Draft Material Request (Material Transfer) linked to a Sales Order.
+	`items` is a JSON string: [{"item_code": "...", "qty": ..., "uom": "..."}]
+	"""
+	import json as _json
+
+	if isinstance(items, str):
+		items = _json.loads(items)
+
+	if not frappe.db.exists("Sales Order", so_name):
+		frappe.throw(_("Sales Order {0} not found").format(so_name))
+
+	mr = frappe.new_doc("Material Request")
+	mr.material_request_type = "Material Transfer"
+	mr.schedule_date = required_by_date or frappe.utils.today()
+
+	for item in items:
+		mr.append("items", {
+			"item_code": item["item_code"],
+			"qty": item["qty"],
+			"uom": item.get("uom", "Nos"),
+			"schedule_date": required_by_date or frappe.utils.today(),
+			"warehouse": target_warehouse,
+			"from_warehouse": source_warehouse,
+			"sales_order": so_name,
+		})
+
+	mr.insert(ignore_permissions=True)
+	frappe.db.commit()
+
+	return {"mr_name": mr.name}
+
+
+@frappe.whitelist()
+def submit_b2b_material_request(mr_name):
+	"""Submit a Draft Material Request."""
+	if not frappe.db.exists("Material Request", mr_name):
+		frappe.throw(_("Material Request {0} not found").format(mr_name))
+
+	doc = frappe.get_doc("Material Request", mr_name)
+	doc.flags.ignore_permissions = True
+	doc.submit()
+
+	return {"status": "success", "mr_name": doc.name}
+
+
+@frappe.whitelist()
+def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer=""):
+	"""
+	Create and submit a Stock Entry (Material Transfer) from a submitted Material Request.
+	Sets custom_cost_center on header and cost_center on each detail row.
+	Sets custom_perpose_of_transfer on header.
+	Marks the linked Sales Order as picked.
+	"""
+	if not frappe.db.exists("Material Request", mr_name):
+		frappe.throw(_("Material Request {0} not found").format(mr_name))
+
+	mr_doc = frappe.get_doc("Material Request", mr_name)
+	if mr_doc.docstatus != 1:
+		frappe.throw(_("Material Request {0} must be submitted first").format(mr_name))
+
+	# Determine the linked Sales Order and customer
+	so_name = None
+	customer_name = ""
+	for item in mr_doc.items:
+		if item.sales_order:
+			so_name = item.sales_order
+			customer_name = frappe.db.get_value("Sales Order", so_name, "customer_name") or ""
+			break
+
+	se = frappe.new_doc("Stock Entry")
+	se.stock_entry_type = "Material Transfer"
+	se.custom_cost_center = cost_center
+	se.custom_perpose_of_transfer = purpose_of_transfer or f"Transfer by B2B Order Pick for {customer_name}".strip()
+
+	for item in mr_doc.items:
+		se.append("items", {
+			"item_code": item.item_code,
+			"qty": item.qty,
+			"uom": item.uom,
+			"s_warehouse": item.from_warehouse,
+			"t_warehouse": item.warehouse,
+			"cost_center": cost_center,
+			"material_request": mr_doc.name,
+			"material_request_item": item.name,
+		})
+
+	se.insert(ignore_permissions=True)
+	se.flags.ignore_permissions = True
+	se.submit()
+
+	# Mark the Sales Order as B2B picked
+	if so_name:
+		try:
+			frappe.db.set_value("Sales Order", so_name, "custom_b2b_picked", 1)
+		except Exception:
+			pass  # Field may not exist yet
+
+		so_doc = frappe.get_doc("Sales Order", so_name)
+		so_doc.add_comment(
+			"Info",
+			_(
+				"Order fully picked and processed via B2B Order Pick App. "
+				"Material Request: {0}, Stock Entry: {1}"
+			).format(mr_doc.name, se.name)
+		)
+
+	frappe.db.commit()
+	return {"se_name": se.name, "mr_name": mr_doc.name}

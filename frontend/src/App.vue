@@ -42,6 +42,20 @@
       </div>
     </Transition>
 
+    <!-- Tab Navigation -->
+    <div class="flex bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 mb-6 p-1 gap-1">
+      <button @click="activeTab = 'retail'" :class="activeTab === 'retail' ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'" class="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        Retail Pick
+      </button>
+      <button @click="activeTab = 'b2b'" :class="activeTab === 'b2b' ? 'bg-purple-600 text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'" class="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        B2B Pick
+      </button>
+    </div>
+
+    <!-- =============== RETAIL TAB =============== -->
+    <div v-if="activeTab === 'retail'">
     <!-- Progress Bar Section -->
     <div class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 mb-6 relative overflow-hidden">
       <!-- Decorator element -->
@@ -252,24 +266,6 @@
       </div>
     </div>
 
-    <!-- User Footer -->
-    <div class="flex justify-center items-center mt-2 mb-8">
-      <div class="bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-6 py-3 rounded-full shadow-sm flex items-center gap-3">
-        
-        <!-- Avatar Slot -->
-        <div v-if="userImage" class="w-8 h-8 rounded-full overflow-hidden border border-gray-300 dark:border-slate-600 shadow-sm flex-shrink-0">
-            <img :src="userImage" class="w-full h-full object-cover" alt="User Avatar" />
-        </div>
-        <div v-else class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold flex-shrink-0">
-           {{ userName.charAt(0).toUpperCase() }}
-        </div>
-        
-        <div class="text-sm font-medium text-gray-600 dark:text-gray-300">
-          Picker: <span class="font-bold text-gray-900 dark:text-white">{{ userName }}</span>
-        </div>
-      </div>
-    </div>
-
     <!-- Confirmation Modal -->
     <Transition name="fade">
       <div v-if="showSubmitConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 dark:bg-black/60 backdrop-blur-sm p-4">
@@ -294,11 +290,33 @@
         </div>
       </div>
     </Transition>
+    </div>
+    <!-- =============== END RETAIL TAB =============== -->
+
+    <!-- =============== B2B TAB =============== -->
+    <B2BPick v-if="activeTab === 'b2b'" @alert="handleB2BAlert" ref="b2bPickRef" />
+    <!-- =============== END B2B TAB =============== -->
+
+    <!-- User Footer -->
+    <div class="flex justify-center items-center mt-2 mb-8">
+      <div class="bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-6 py-3 rounded-full shadow-sm flex items-center gap-3">
+        <div v-if="userImage" class="w-8 h-8 rounded-full overflow-hidden border border-gray-300 dark:border-slate-600 shadow-sm flex-shrink-0">
+            <img :src="userImage" class="w-full h-full object-cover" alt="User Avatar" />
+        </div>
+        <div v-else class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold flex-shrink-0">
+           {{ userName.charAt(0).toUpperCase() }}
+        </div>
+        <div class="text-sm font-medium text-gray-600 dark:text-gray-300">
+          Picker: <span class="font-bold text-gray-900 dark:text-white">{{ userName }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import B2BPick from './B2BPick.vue';
 
 // State
 const orderPickId = ref(null);
@@ -312,6 +330,8 @@ const isLoading = ref(false);
 const isSubmittingInvoice = ref(false);
 const flashSuccess = ref(false);
 const showSubmitConfirm = ref(false);
+const activeTab = ref('retail');
+const b2bPickRef = ref(null);
 
 const completedInvoicesCount = ref(0);
 const totalPickedItemsCount = ref(0);
@@ -613,6 +633,10 @@ const submitOrderPick = async () => {
 
 const backToErp = () => {
     window.location.href = '/app/workspace/Order%20Picking';
+};
+
+const handleB2BAlert = (message, type) => {
+    showAlert(message, type);
 };
 
 const submitInvoice = async () => {
