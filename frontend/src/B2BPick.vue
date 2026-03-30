@@ -224,8 +224,20 @@
       </button>
     </div>
 
-    <!-- Action: Create Material Request (after 100%) -->
-    <div v-if="currentStep === 1 && percentage === 100 && currentSO" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 mb-6">
+    <!-- Action: Create Material Request (after picking - full or partial) -->
+    <div v-if="currentStep === 1 && pickedItems.length > 0 && currentSO && warehouseConfirmed" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 mb-6">
+      <!-- Partial Delivery Warning -->
+      <div v-if="percentage < 100" class="mb-4 bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-start gap-3">
+        <svg class="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+        <div>
+          <p class="text-sm font-bold text-orange-800">Partial Pick — {{ percentage }}% completed</p>
+          <p class="text-xs text-orange-600 mt-1">Not all items are fully picked. Proceeding will mark this order as <strong>"Consignment Partially Delivered"</strong>. Remaining items will not be included in the Material Request.</p>
+        </div>
+      </div>
+      <div v-if="percentage === 100" class="mb-4 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+        <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-sm font-bold text-green-800">All items fully picked! This will be marked as "Consignment Delivered".</p>
+      </div>
       <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4 flex items-center gap-2">
         <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
         Create Material Request
@@ -237,9 +249,10 @@
         </div>
       </div>
       <button @click="createMR" :disabled="!requiredByDate || isLoading"
-        class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-6 rounded-lg text-sm shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
+        :class="percentage < 100 ? 'bg-orange-600 hover:bg-orange-700' : 'bg-amber-600 hover:bg-amber-700'"
+        class="text-white font-bold py-2.5 px-6 rounded-lg text-sm shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-        Create Material Request
+        {{ percentage < 100 ? 'Create Material Request (Partial Delivery)' : 'Create Material Request' }}
       </button>
     </div>
 
@@ -295,10 +308,11 @@
 
     <!-- STEP 4: Completed Summary -->
     <div v-if="currentStep === 4" class="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 mb-6">
-      <div class="flex items-center justify-center w-16 h-16 mx-auto bg-green-100 text-green-600 rounded-full mb-4">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full mb-4" :class="isPartialPick ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'">
+        <svg v-if="!isPartialPick" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <svg v-else class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
       </div>
-      <h3 class="text-xl font-bold text-green-700 dark:text-green-400 mb-1 text-center">B2B Order Completed!</h3>
+      <h3 class="text-xl font-bold mb-1 text-center" :class="isPartialPick ? 'text-orange-700 dark:text-orange-400' : 'text-green-700 dark:text-green-400'">{{ isPartialPick ? 'Consignment Partially Delivered' : 'B2B Order Completed!' }}</h3>
       <p class="text-gray-500 dark:text-slate-400 mb-6 text-center text-sm">
         Sales Order <span class="font-bold">{{ completedSE.so_name }}</span> &mdash; {{ completedSE.customer_name }}
       </p>
@@ -439,7 +453,8 @@ const pickingLog = ref([]);
 const showLog = ref(false);
 
 // Workflow state
-const currentStep = ref(1); // 1=pick, 2=MR draft, 3=SE
+const currentStep = ref(1); // 1=pick, 2=MR draft, 3=SE, 4=complete
+const isPartialPick = ref(false);
 const mrName = ref(null);
 const sourceWarehouse = ref('');
 const targetWarehouse = ref('');
@@ -684,6 +699,8 @@ const printPickList = () => {
 
 const createMR = async () => {
   try {
+    // Determine if this is a partial pick
+    isPartialPick.value = percentage.value < 100;
     const items = pickedItems.value.map(i => ({ item_code: i.item_code, qty: i.qty, uom: i.uom || 'Nos' }));
     const data = await apiCall('order_picking.api.api.create_b2b_material_request', {
       so_name: currentSO.value,
@@ -712,9 +729,11 @@ const createSE = async () => {
     const data = await apiCall('order_picking.api.api.create_b2b_stock_entry', {
       mr_name: mrName.value,
       cost_center: costCenter.value,
-      purpose_of_transfer: purposeOfTransfer.value
+      purpose_of_transfer: purposeOfTransfer.value,
+      is_partial: isPartialPick.value ? 1 : 0
     });
-    emit('alert', `Stock Entry ${data.se_name} created & submitted!`, 'success');
+    const statusLabel = isPartialPick.value ? 'Consignment Partially Delivered' : 'Consignment Delivered';
+    emit('alert', `Stock Entry ${data.se_name} created & submitted! Status: ${statusLabel}`, 'success');
     completedCount.value++;
     totalPickedCount.value += pickedItems.value.reduce((a, o) => a + o.qty, 0);
 
@@ -783,6 +802,7 @@ const resetForNextOrder = async () => {
   completedSE.value = { so_name: '', customer_name: '', mr_name: '', se_name: '', items: [] };
   warehouseConfirmed.value = false;
   stockLevels.value = {};
+  isPartialPick.value = false;
   const today = new Date();
   const yyyy = today.getFullYear();
   const mm = String(today.getMonth() + 1).padStart(2, '0');

@@ -389,12 +389,13 @@ def submit_b2b_material_request(mr_name):
 
 
 @frappe.whitelist()
-def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer=""):
+def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer="", is_partial=0):
 	"""
 	Create and submit a Stock Entry (Material Transfer) from a submitted Material Request.
 	Sets custom_cost_center on header and cost_center on each detail row.
 	Sets custom_perpose_of_transfer on header.
 	Marks the linked Sales Order as picked.
+	If is_partial=1, status is set to "Consignment Partially Delivered".
 	"""
 	if not frappe.db.exists("Material Request", mr_name):
 		frappe.throw(_("Material Request {0} not found").format(mr_name))
@@ -433,6 +434,10 @@ def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer=""):
 	se.flags.ignore_permissions = True
 	se.submit()
 
+	# Determine status based on partial flag
+	is_partial = int(is_partial or 0)
+	b2b_status = "Consignment Partially Delivered" if is_partial else "Consignment Delivered"
+
 	# Mark the Sales Order as B2B picked + set custom status
 	if so_name:
 		try:
@@ -440,7 +445,7 @@ def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer=""):
 				"Sales Order", so_name,
 				{
 					"custom_b2b_picked": 1,
-					"custom_b2b_status": "Consignment Delivered"
+					"custom_b2b_status": b2b_status
 				},
 				update_modified=False
 			)
@@ -454,10 +459,10 @@ def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer=""):
 		so_doc.add_comment(
 			"Info",
 			_(
-				"Order fully picked and processed via B2B Order Pick App. "
-				"Status: Consignment Delivered. "
+				"Order picked and processed via B2B Order Pick App. "
+				"Status: {2}. "
 				"Material Request: {0}, Stock Entry: {1}"
-			).format(mr_doc.name, se.name)
+			).format(mr_doc.name, se.name, b2b_status)
 		)
 
 	frappe.db.commit()

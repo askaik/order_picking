@@ -52,7 +52,7 @@ def setup_custom_fields():
 				"fieldname": "custom_b2b_status",
 				"label": "B2B Status",
 				"fieldtype": "Select",
-				"options": "\nConsignment Delivered",
+				"options": "\nConsignment Delivered\nConsignment Partially Delivered",
 				"insert_after": "custom_b2b_picked",
 				"read_only": 1,
 				"in_list_view": 1,
