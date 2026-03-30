@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- B2B Workflow Steps Indicator -->
-    <div class="flex items-center justify-center gap-2 mb-6 text-xs font-bold uppercase tracking-wider">
+    <div class="flex items-center justify-center gap-2 mb-6 text-xs font-bold uppercase tracking-wider flex-wrap">
       <div :class="stepClass(1)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all">
         <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] border" :class="stepNumClass(1)">1</span>
         Pick Items
@@ -15,6 +15,11 @@
       <div :class="stepClass(3)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all">
         <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] border" :class="stepNumClass(3)">3</span>
         Stock Entry
+      </div>
+      <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      <div :class="stepClass(4)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all">
+        <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] border" :class="stepNumClass(4)">4</span>
+        Complete
       </div>
     </div>
 
@@ -252,6 +257,69 @@
       </div>
     </div>
 
+    <!-- STEP 4: Completed Summary -->
+    <div v-if="currentStep === 4" class="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 mb-6">
+      <div class="flex items-center justify-center w-16 h-16 mx-auto bg-green-100 text-green-600 rounded-full mb-4">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <h3 class="text-xl font-bold text-green-700 dark:text-green-400 mb-1 text-center">B2B Order Completed!</h3>
+      <p class="text-gray-500 dark:text-slate-400 mb-6 text-center text-sm">
+        Sales Order <span class="font-bold">{{ completedSE.so_name }}</span> &mdash; {{ completedSE.customer_name }}
+      </p>
+
+      <!-- Reference Links -->
+      <div class="flex flex-wrap justify-center gap-3 mb-6">
+        <a :href="'/app/material-request/' + completedSE.mr_name" target="_blank" class="text-sm font-bold text-amber-700 bg-amber-50 border border-amber-200 px-4 py-2 rounded-lg hover:bg-amber-100 transition-colors flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          MR: {{ completedSE.mr_name }}
+        </a>
+        <a :href="'/app/stock-entry/' + completedSE.se_name" target="_blank" class="text-sm font-bold text-green-700 bg-green-50 border border-green-200 px-4 py-2 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+          SE: {{ completedSE.se_name }}
+        </a>
+      </div>
+
+      <!-- Items Summary Table -->
+      <div class="overflow-x-auto mb-6 border border-gray-200 dark:border-slate-600 rounded-lg">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 dark:bg-slate-700">
+            <tr>
+              <th class="text-left px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">#</th>
+              <th class="text-left px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">Item Code</th>
+              <th class="text-left px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">Item Name</th>
+              <th class="text-right px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">Qty</th>
+              <th class="text-left px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">UOM</th>
+              <th class="text-left px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">From</th>
+              <th class="text-left px-4 py-2.5 text-xs font-bold text-gray-500 uppercase">To</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, idx) in completedSE.items" :key="idx" class="border-t border-gray-100 dark:border-slate-600">
+              <td class="px-4 py-2 text-gray-400">{{ idx + 1 }}</td>
+              <td class="px-4 py-2 font-bold text-gray-700 dark:text-slate-200">{{ item.item_code }}</td>
+              <td class="px-4 py-2 text-gray-600 dark:text-slate-300">{{ item.item_name }}</td>
+              <td class="px-4 py-2 text-right font-black text-green-700">{{ item.qty }}</td>
+              <td class="px-4 py-2 text-gray-500">{{ item.uom }}</td>
+              <td class="px-4 py-2 text-gray-500 text-xs">{{ item.from_warehouse }}</td>
+              <td class="px-4 py-2 text-gray-500 text-xs">{{ item.to_warehouse }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap justify-center gap-3">
+        <button @click="printCompletedSummary" class="text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 px-5 py-2.5 rounded-lg transition-colors shadow-sm ring-1 ring-inset ring-gray-200 dark:ring-slate-600 flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          Print Summary
+        </button>
+        <button @click="resetForNextOrder" class="text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 px-5 py-2.5 rounded-lg transition-all shadow-md hover:-translate-y-0.5 hover:shadow-lg flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+          Scan Next Order
+        </button>
+      </div>
+    </div>
+
     <!-- Session Summary -->
     <div class="flex flex-col md:flex-row gap-6 mb-6 mt-4">
       <div class="flex-1 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border-2 border-dashed border-gray-200 dark:border-slate-700 flex items-center justify-between">
@@ -344,6 +412,7 @@ const costCenter = ref('');
 const purposeOfTransfer = ref('');
 const warehouses = ref([]);
 const costCenters = ref([]);
+const completedSE = ref({ so_name: '', customer_name: '', mr_name: '', se_name: '', items: [] });
 
 const completedCount = ref(0);
 const totalPickedCount = ref(0);
@@ -585,34 +654,80 @@ const createSE = async () => {
       cost_center: costCenter.value,
       purpose_of_transfer: purposeOfTransfer.value
     });
-    emit('alert', `Stock Entry ${data.se_name} created & submitted! Session complete.`, 'success');
+    emit('alert', `Stock Entry ${data.se_name} created & submitted!`, 'success');
     completedCount.value++;
     totalPickedCount.value += pickedItems.value.reduce((a, o) => a + o.qty, 0);
-    // Reset
-    currentSO.value = null;
-    customerName.value = '';
-    soStatus.value = null;
-    itemsToPick.value = [];
-    pickedItems.value = [];
-    barcodeMap.value = {};
-    mrName.value = null;
-    currentStep.value = 1;
-    sourceWarehouse.value = '';
-    targetWarehouse.value = '';
-    costCenter.value = '';
-    purposeOfTransfer.value = '';
-    lastScanInfo.value = '';
-    manualQtyMultiplier.value = 1;
-    pickingLog.value = [];
-    showLog.value = false;
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    requiredByDate.value = `${yyyy}-${mm}-${dd}`;
-    await nextTick();
-    soInputRef.value?.focus();
+
+    // Store completion data for summary / print
+    completedSE.value = {
+      so_name: data.so_name || currentSO.value || '',
+      customer_name: data.customer_name || customerName.value || '',
+      mr_name: data.mr_name || mrName.value || '',
+      se_name: data.se_name || '',
+      items: data.items || pickedItems.value.map(i => ({
+        item_code: i.item_code,
+        item_name: i.item_name,
+        qty: i.qty,
+        uom: i.uom || 'Nos',
+        from_warehouse: sourceWarehouse.value,
+        to_warehouse: targetWarehouse.value
+      }))
+    };
+
+    // Go to step 4 (completed) instead of immediately resetting
+    currentStep.value = 4;
   } catch(e) {}
+};
+
+const printCompletedSummary = () => {
+  const c = completedSE.value;
+  const rows = c.items.map((item, idx) =>
+    `<tr><td style="padding:6px 12px;border:1px solid #ddd">${idx+1}</td><td style="padding:6px 12px;border:1px solid #ddd;font-weight:bold">${item.item_code}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.item_name||''}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:bold">${item.qty}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.uom||'Nos'}</td><td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.from_warehouse||''}</td><td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.to_warehouse||''}</td></tr>`
+  ).join('');
+  const logRows = pickingLog.value.map((log, idx) =>
+    `<tr><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">${idx+1}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">${log.time}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;font-weight:bold">${log.item_code}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;font-family:monospace">${log.barcode}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;text-align:right;font-weight:bold">${log.qty}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">&times;${log.multiplier} (${log.uom_factor})</td></tr>`
+  ).join('');
+  const html = `<html><head><title>B2B Pick Summary &mdash; ${c.so_name}</title><style>body{font-family:system-ui,sans-serif;padding:30px;color:#333}table{border-collapse:collapse;width:100%}th{background:#f3f4f6;text-align:left;padding:8px 12px;border:1px solid #ddd;font-size:12px;text-transform:uppercase}.badge{display:inline-block;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:bold;margin-right:8px}</style></head><body>` +
+    `<h1 style="margin:0 0 4px">B2B Order Pick &mdash; Completion Summary</h1>` +
+    `<p style="color:#666;margin:0 0 4px"><strong>Sales Order:</strong> ${c.so_name} &nbsp; <strong>Customer:</strong> ${c.customer_name}</p>` +
+    `<p style="color:#666;margin:0 0 4px"><span class="badge" style="background:#fef3c7;color:#92400e">MR: ${c.mr_name}</span><span class="badge" style="background:#d1fae5;color:#065f46">SE: ${c.se_name}</span></p>` +
+    `<p style="color:#999;margin:0 0 20px;font-size:12px">Printed: ${new Date().toLocaleString()}</p>` +
+    `<h3 style="margin:0 0 8px">Transfer Items</h3>` +
+    `<table><thead><tr><th>#</th><th>Item Code</th><th>Item Name</th><th style="text-align:right">Qty</th><th>UOM</th><th>Source WH</th><th>Dest WH</th></tr></thead><tbody>${rows}</tbody></table>` +
+    (logRows ? `<h3 style="margin:24px 0 8px">Scan Log (${pickingLog.value.length} scans)</h3><table><thead><tr><th>#</th><th>Time</th><th>Item</th><th>Barcode</th><th style="text-align:right">Qty</th><th>Details</th></tr></thead><tbody>${logRows}</tbody></table>` : '') +
+    `</body></html>`;
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  w.print();
+};
+
+const resetForNextOrder = async () => {
+  currentSO.value = null;
+  customerName.value = '';
+  soStatus.value = null;
+  itemsToPick.value = [];
+  pickedItems.value = [];
+  barcodeMap.value = {};
+  mrName.value = null;
+  currentStep.value = 1;
+  sourceWarehouse.value = '';
+  targetWarehouse.value = '';
+  costCenter.value = '';
+  purposeOfTransfer.value = '';
+  lastScanInfo.value = '';
+  manualQtyMultiplier.value = 1;
+  pickingLog.value = [];
+  showLog.value = false;
+  completedSE.value = { so_name: '', customer_name: '', mr_name: '', se_name: '', items: [] };
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  requiredByDate.value = `${yyyy}-${mm}-${dd}`;
+  await nextTick();
+  soInputRef.value?.focus();
 };
 
 // Expose refs for parent focus management

@@ -412,9 +412,15 @@ def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer=""):
 	# Mark the Sales Order as B2B picked
 	if so_name:
 		try:
-			frappe.db.set_value("Sales Order", so_name, "custom_b2b_picked", 1)
-		except Exception:
-			pass  # Field may not exist yet
+			frappe.db.set_value(
+				"Sales Order", so_name, "custom_b2b_picked", 1,
+				update_modified=False
+			)
+		except Exception as e:
+			frappe.log_error(
+				f"Could not set custom_b2b_picked on {so_name}: {str(e)}",
+				"B2B Order Pick - Mark SO"
+			)
 
 		so_doc = frappe.get_doc("Sales Order", so_name)
 		so_doc.add_comment(
@@ -426,4 +432,23 @@ def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer=""):
 		)
 
 	frappe.db.commit()
-	return {"se_name": se.name, "mr_name": mr_doc.name}
+
+	# Return item details for the completion summary / print
+	items_summary = []
+	for item in mr_doc.items:
+		items_summary.append({
+			"item_code": item.item_code,
+			"item_name": frappe.db.get_value("Item", item.item_code, "item_name") or item.item_code,
+			"qty": item.qty,
+			"uom": item.uom,
+			"from_warehouse": item.from_warehouse,
+			"to_warehouse": item.warehouse,
+		})
+
+	return {
+		"se_name": se.name,
+		"mr_name": mr_doc.name,
+		"so_name": so_name or "",
+		"customer_name": customer_name,
+		"items": items_summary,
+	}
