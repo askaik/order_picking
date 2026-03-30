@@ -294,6 +294,30 @@ def get_sales_order_items(scan_input):
 
 
 @frappe.whitelist()
+def get_stock_for_items(item_codes, warehouse):
+	"""
+	Return actual stock balance for a list of item codes in a given warehouse.
+	Used to validate stock availability before picking.
+	`item_codes` is a JSON string list.
+	"""
+	import json as _json
+	from erpnext.stock.utils import get_stock_balance
+
+	if isinstance(item_codes, str):
+		item_codes = _json.loads(item_codes)
+
+	stock = {}
+	for item_code in item_codes:
+		try:
+			balance = get_stock_balance(item_code, warehouse) or 0
+			stock[item_code] = float(balance)
+		except Exception:
+			stock[item_code] = 0
+
+	return stock
+
+
+@frappe.whitelist()
 def get_warehouses_and_cost_centers():
 	"""Return active warehouses and cost centers for dropdown selection."""
 	warehouses = frappe.get_all(
@@ -409,16 +433,20 @@ def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer=""):
 	se.flags.ignore_permissions = True
 	se.submit()
 
-	# Mark the Sales Order as B2B picked
+	# Mark the Sales Order as B2B picked + set custom status
 	if so_name:
 		try:
 			frappe.db.set_value(
-				"Sales Order", so_name, "custom_b2b_picked", 1,
+				"Sales Order", so_name,
+				{
+					"custom_b2b_picked": 1,
+					"custom_b2b_status": "Consignment Delivered"
+				},
 				update_modified=False
 			)
 		except Exception as e:
 			frappe.log_error(
-				f"Could not set custom_b2b_picked on {so_name}: {str(e)}",
+				f"Could not set custom_b2b fields on {so_name}: {str(e)}",
 				"B2B Order Pick - Mark SO"
 			)
 
@@ -427,6 +455,7 @@ def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer=""):
 			"Info",
 			_(
 				"Order fully picked and processed via B2B Order Pick App. "
+				"Status: Consignment Delivered. "
 				"Material Request: {0}, Stock Entry: {1}"
 			).format(mr_doc.name, se.name)
 		)

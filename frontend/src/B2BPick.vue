@@ -62,6 +62,7 @@
 
     <!-- STEP 1: Scan Inputs -->
     <div v-if="currentStep === 1" class="flex flex-col gap-4 mb-6">
+      <!-- SO Scanner (always visible in step 1) -->
       <div class="flex flex-col md:flex-row gap-4">
         <div class="flex-1 relative group">
           <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -70,27 +71,71 @@
           <input v-model="soScan" @keyup.enter="handleSOScan" type="text" id="scan_so_input"
             class="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 dark:border-slate-600 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all shadow-sm font-medium bg-white dark:bg-slate-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500"
             placeholder="Scan Sales Order Barcode..."
-            :disabled="isLoading" ref="soInputRef">
+            :disabled="isLoading || warehouseConfirmed" ref="soInputRef">
         </div>
-        <div class="flex flex-row gap-2 flex-1">
-          <div class="flex-1 relative group">
-            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <svg class="w-6 h-6 text-gray-400 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-            </div>
-            <input v-model="itemScan" @keyup.enter="handleItemScan" type="text" id="scan_b2b_item_input"
-              :class="{'ring-4 ring-green-400/50 bg-green-50': flashSuccess, 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/20': !flashSuccess}"
-              class="w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:ring-4 transition-all shadow-sm font-medium bg-white dark:bg-slate-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 disabled:bg-gray-100 dark:disabled:bg-slate-900 disabled:cursor-not-allowed"
-              placeholder="Scan Item Barcode (supports UOM/Box)..."
-              :disabled="!currentSO || percentage === 100 || isLoading" ref="itemInputRef">
+      </div>
+
+      <!-- Warehouse Selection (after SO scanned, before picking) -->
+      <div v-if="currentSO && !warehouseConfirmed" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border-2 border-purple-200 dark:border-purple-800 mb-2">
+        <h4 class="text-sm font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+          Select Warehouses to Start Picking
+        </h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Source Warehouse *</label>
+            <select v-model="sourceWarehouse" class="w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+              <option value="">Select source...</option>
+              <option v-for="w in warehouses" :key="w" :value="w">{{ w }}</option>
+            </select>
           </div>
-          <!-- Manual Qty Multiplier -->
-          <div class="w-24 flex-shrink-0">
-            <div class="relative">
-              <label class="absolute -top-2 left-2 bg-white dark:bg-slate-800 px-1 text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider z-10">× Qty</label>
-              <input v-model.number="manualQtyMultiplier" type="number" min="1" step="1"
-                class="w-full py-4 px-3 text-lg text-center border-2 border-purple-300 dark:border-purple-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all shadow-sm font-black bg-purple-50 dark:bg-purple-900/30 dark:text-purple-200"
-                :disabled="!currentSO || percentage === 100 || isLoading">
-            </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Destination Warehouse *</label>
+            <select v-model="targetWarehouse" class="w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+              <option value="">Select destination...</option>
+              <option v-for="w in warehouses" :key="w" :value="w">{{ w }}</option>
+            </select>
+          </div>
+        </div>
+        <button @click="confirmWarehouses" :disabled="!sourceWarehouse || !targetWarehouse || isLoading"
+          class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-lg text-sm shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg v-if="isLoading" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+          <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          Confirm &amp; Start Picking
+        </button>
+      </div>
+
+      <!-- Warehouse badges (after confirmed) -->
+      <div v-if="warehouseConfirmed" class="flex flex-wrap gap-2 mb-2">
+        <div class="text-xs font-bold px-3 py-1.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4"/></svg>
+          From: {{ sourceWarehouse }}
+        </div>
+        <div class="text-xs font-bold px-3 py-1.5 rounded-md bg-green-50 text-green-700 border border-green-200 flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+          To: {{ targetWarehouse }}
+        </div>
+      </div>
+
+      <!-- Item Scanner (only after warehouses confirmed) -->
+      <div v-if="warehouseConfirmed" class="flex flex-row gap-2">
+        <div class="flex-1 relative group">
+          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <svg class="w-6 h-6 text-gray-400 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+          </div>
+          <input v-model="itemScan" @keyup.enter="handleItemScan" type="text" id="scan_b2b_item_input"
+            :class="{'ring-4 ring-green-400/50 bg-green-50': flashSuccess, 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/20': !flashSuccess}"
+            class="w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:ring-4 transition-all shadow-sm font-medium bg-white dark:bg-slate-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 disabled:bg-gray-100 dark:disabled:bg-slate-900 disabled:cursor-not-allowed"
+            placeholder="Scan Item Barcode (supports UOM/Box)..."
+            :disabled="percentage === 100 || isLoading" ref="itemInputRef">
+        </div>
+        <!-- Manual Qty Multiplier -->
+        <div class="w-24 flex-shrink-0">
+          <div class="relative">
+            <label class="absolute -top-2 left-2 bg-white dark:bg-slate-800 px-1 text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider z-10">× Qty</label>
+            <input v-model.number="manualQtyMultiplier" type="number" min="1" step="1"
+              class="w-full py-4 px-3 text-lg text-center border-2 border-purple-300 dark:border-purple-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all shadow-sm font-black bg-purple-50 dark:bg-purple-900/30 dark:text-purple-200"
+              :disabled="percentage === 100 || isLoading">
           </div>
         </div>
       </div>
@@ -127,7 +172,12 @@
                 <div class="text-xs text-gray-500 truncate" :title="item.item_name">{{ item.item_name || 'No Name' }}</div>
               </div>
             </div>
-            <div class="text-lg font-black bg-white dark:bg-slate-800 px-3 py-1 rounded shadow-sm border border-gray-200 group-hover:border-purple-300 group-hover:text-purple-700 transition-colors flex-shrink-0">{{ item.qty }} <span class="text-xs text-gray-400 font-medium">{{ item.uom }}</span></div>
+            <div class="text-lg font-black bg-white dark:bg-slate-800 px-3 py-1 rounded shadow-sm border border-gray-200 group-hover:border-purple-300 group-hover:text-purple-700 transition-colors flex-shrink-0">
+              {{ item.qty }} <span class="text-xs text-gray-400 font-medium">{{ item.uom }}</span>
+              <div v-if="stockLevels[item.item_code] !== undefined" class="text-[10px] font-medium mt-0.5" :class="stockLevels[item.item_code] >= item.qty ? 'text-green-500' : 'text-red-500'">
+                Stock: {{ stockLevels[item.item_code] }}
+              </div>
+            </div>
           </div>
         </div>
         <div v-else class="flex-1 flex flex-col items-center justify-center text-gray-400 opacity-60">
@@ -180,27 +230,13 @@
         <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
         Create Material Request
       </h4>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <div>
-          <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Source Warehouse *</label>
-          <select v-model="sourceWarehouse" class="w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-            <option value="">Select...</option>
-            <option v-for="w in warehouses" :key="w" :value="w">{{ w }}</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Destination Warehouse *</label>
-          <select v-model="targetWarehouse" class="w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-            <option value="">Select...</option>
-            <option v-for="w in warehouses" :key="w" :value="w">{{ w }}</option>
-          </select>
-        </div>
+      <div class="grid grid-cols-1 gap-4 mb-4">
         <div>
           <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Required By Date *</label>
-          <input v-model="requiredByDate" type="date" class="w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
+          <input v-model="requiredByDate" type="date" class="w-full md:w-1/3 border-2 border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
         </div>
       </div>
-      <button @click="createMR" :disabled="!sourceWarehouse || !targetWarehouse || !requiredByDate || isLoading"
+      <button @click="createMR" :disabled="!requiredByDate || isLoading"
         class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-6 rounded-lg text-sm shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         Create Material Request
@@ -413,6 +449,8 @@ const purposeOfTransfer = ref('');
 const warehouses = ref([]);
 const costCenters = ref([]);
 const completedSE = ref({ so_name: '', customer_name: '', mr_name: '', se_name: '', items: [] });
+const warehouseConfirmed = ref(false);
+const stockLevels = ref({});
 
 const completedCount = ref(0);
 const totalPickedCount = ref(0);
@@ -509,13 +547,35 @@ const handleSOScan = async () => {
       mrName.value = null;
       lastScanInfo.value = '';
       soScan.value = '';
-      emit('alert', `Loaded Sales Order ${currentSO.value} — Customer: ${customerName.value}`, 'success');
-      await nextTick();
-      itemInputRef.value?.focus();
+      warehouseConfirmed.value = false;
+      stockLevels.value = {};
+      emit('alert', `Loaded Sales Order ${currentSO.value} — Customer: ${customerName.value}. Select warehouses to start picking.`, 'success');
     }
   } catch(e) {
     soScan.value = '';
     soInputRef.value?.focus();
+  }
+};
+
+const confirmWarehouses = async () => {
+  if (!sourceWarehouse.value || !targetWarehouse.value) return;
+  if (sourceWarehouse.value === targetWarehouse.value) {
+    emit('alert', 'Source and Destination warehouse cannot be the same!', 'error');
+    return;
+  }
+  try {
+    const itemCodes = itemsToPick.value.map(i => i.item_code);
+    const stock = await apiCall('order_picking.api.api.get_stock_for_items', {
+      item_codes: JSON.stringify(itemCodes),
+      warehouse: sourceWarehouse.value
+    });
+    stockLevels.value = stock || {};
+    warehouseConfirmed.value = true;
+    emit('alert', `Warehouses confirmed. Stock levels loaded from ${sourceWarehouse.value}. Start scanning items!`, 'success');
+    await nextTick();
+    itemInputRef.value?.focus();
+  } catch(e) {
+    emit('alert', 'Failed to load stock levels. Please try again.', 'error');
   }
 };
 
@@ -721,6 +781,8 @@ const resetForNextOrder = async () => {
   pickingLog.value = [];
   showLog.value = false;
   completedSE.value = { so_name: '', customer_name: '', mr_name: '', se_name: '', items: [] };
+  warehouseConfirmed.value = false;
+  stockLevels.value = {};
   const today = new Date();
   const yyyy = today.getFullYear();
   const mm = String(today.getMonth() + 1).padStart(2, '0');
