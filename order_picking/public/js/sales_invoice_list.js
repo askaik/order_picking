@@ -11,7 +11,9 @@ frappe.listview_settings['Sales Invoice'].get_indicator = function (doc) {
 		"Draft": "red",
 		"Cancelled": "red",
 		"Credit Note": "gray",
-		"Return": "gray"
+		"Return": "gray",
+		"Refunded": "gray",
+		"Returned": "gray"
 	};
 
 	if (doc.status && status_colors[doc.status]) {
