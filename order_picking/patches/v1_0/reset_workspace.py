@@ -41,6 +41,7 @@ def execute():
 		frappe.db.commit()
 	except Exception:
 		pass
+
 	try:
 		frappe.reload_doc("order_picking", "workspace", "order_picking")
 	except Exception:
