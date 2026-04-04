@@ -11,6 +11,7 @@ frappe.listview_settings['Sales Invoice'].get_indicator = function (doc) {
 		"Draft": "red",
 		"Cancelled": "red",
 		"Credit Note": "gray",
+		"Credit Note Issued": "gray",
 		"Return": "gray"
 	};
 
@@ -19,7 +20,8 @@ frappe.listview_settings['Sales Invoice'].get_indicator = function (doc) {
 	}
 
 	// Fallback to standard ERPNext indicator logic
-	return frappe.utils.get_indicator(doc, "Sales Invoice");
+	const fallback = frappe.utils.get_indicator && frappe.utils.get_indicator(doc, "Sales Invoice");
+	return fallback || [__(doc.status || ""), "gray", "status,=," + (doc.status || "")];
 };
 
 // Ensure critical fields are always fetched for the status calculation
