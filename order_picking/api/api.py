@@ -351,7 +351,9 @@ def get_warehouses_and_cost_centers():
 def create_b2b_material_request(so_name, items, source_warehouse, target_warehouse, required_by_date):
 	"""
 	Create a Draft Material Request (Material Transfer) linked to a Sales Order.
-	`items` is a JSON string: [{"item_code": "...", "qty": ..., "uom": "..."}]
+	`items` is a JSON string: [{"item_code": "...", "qty": ..., "uom": "...", "source_warehouse": "...", "target_warehouse": "..."}]
+	Each item can optionally specify its own source/target warehouse for multi-warehouse transfers.
+	Falls back to the top-level source_warehouse/target_warehouse if not provided per item.
 	"""
 	import json as _json
 
@@ -371,8 +373,8 @@ def create_b2b_material_request(so_name, items, source_warehouse, target_warehou
 			"qty": item["qty"],
 			"uom": item.get("uom", "Nos"),
 			"schedule_date": required_by_date or frappe.utils.today(),
-			"warehouse": target_warehouse,
-			"from_warehouse": source_warehouse,
+			"warehouse": item.get("target_warehouse") or target_warehouse,
+			"from_warehouse": item.get("source_warehouse") or source_warehouse,
 			"sales_order": so_name,
 		})
 

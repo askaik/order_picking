@@ -82,19 +82,33 @@
           Select Warehouses to Start Picking
         </h4>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
+          <div class="relative" ref="srcDropdownContainer">
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Source Warehouse *</label>
-            <select v-model="sourceWarehouse" class="w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-              <option value="">Select source...</option>
-              <option v-for="w in warehouses" :key="w" :value="w">{{ w }}</option>
-            </select>
+            <input type="text" v-model="sourceWarehouseQuery" @input="onSourceInput" @focus="showSourceDropdown = true" @keydown.down.prevent="navigateDropdown('source', 1)" @keydown.up.prevent="navigateDropdown('source', -1)" @keydown.enter.prevent="selectHighlighted('source')" @keydown.escape="showSourceDropdown = false"
+              class="w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
+              :class="{'border-green-400 bg-green-50 dark:bg-green-900/20': sourceWarehouse && sourceWarehouseQuery === sourceWarehouse}"
+              placeholder="Type to search source warehouse...">
+            <div v-if="showSourceDropdown && filteredSourceWarehouses.length > 0" class="absolute z-50 mt-1 w-full bg-white dark:bg-slate-700 border-2 border-purple-300 dark:border-purple-600 rounded-lg shadow-xl max-h-52 overflow-y-auto">
+              <button v-for="(w, idx) in filteredSourceWarehouses" :key="w" type="button" @mousedown.prevent="selectWarehouse('source', w)"
+                class="w-full text-left px-3 py-2 text-sm font-medium transition-colors truncate"
+                :class="idx === sourceHighlight ? 'bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200' : 'hover:bg-gray-50 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200'">
+                {{ w }}
+              </button>
+            </div>
           </div>
-          <div>
+          <div class="relative" ref="destDropdownContainer">
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Destination Warehouse *</label>
-            <select v-model="targetWarehouse" class="w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-              <option value="">Select destination...</option>
-              <option v-for="w in warehouses" :key="w" :value="w">{{ w }}</option>
-            </select>
+            <input type="text" v-model="targetWarehouseQuery" @input="onTargetInput" @focus="showTargetDropdown = true" @keydown.down.prevent="navigateDropdown('target', 1)" @keydown.up.prevent="navigateDropdown('target', -1)" @keydown.enter.prevent="selectHighlighted('target')" @keydown.escape="showTargetDropdown = false"
+              class="w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
+              :class="{'border-green-400 bg-green-50 dark:bg-green-900/20': targetWarehouse && targetWarehouseQuery === targetWarehouse}"
+              placeholder="Type to search destination warehouse...">
+            <div v-if="showTargetDropdown && filteredTargetWarehouses.length > 0" class="absolute z-50 mt-1 w-full bg-white dark:bg-slate-700 border-2 border-purple-300 dark:border-purple-600 rounded-lg shadow-xl max-h-52 overflow-y-auto">
+              <button v-for="(w, idx) in filteredTargetWarehouses" :key="w" type="button" @mousedown.prevent="selectWarehouse('target', w)"
+                class="w-full text-left px-3 py-2 text-sm font-medium transition-colors truncate"
+                :class="idx === targetHighlight ? 'bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200' : 'hover:bg-gray-50 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200'">
+                {{ w }}
+              </button>
+            </div>
           </div>
         </div>
         <button @click="confirmWarehouses" :disabled="!sourceWarehouse || !targetWarehouse || isLoading"
@@ -105,8 +119,8 @@
         </button>
       </div>
 
-      <!-- Warehouse badges (after confirmed) -->
-      <div v-if="warehouseConfirmed" class="flex flex-wrap gap-2 mb-2">
+      <!-- Active warehouse badges + change warehouse (after confirmed) -->
+      <div v-if="warehouseConfirmed" class="flex flex-wrap items-center gap-2 mb-2">
         <div class="text-xs font-bold px-3 py-1.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4"/></svg>
           From: {{ sourceWarehouse }}
@@ -115,6 +129,56 @@
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
           To: {{ targetWarehouse }}
         </div>
+        <button @click="openChangeWarehouse" class="text-xs font-bold px-3 py-1.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors flex items-center gap-1 cursor-pointer" title="Change active warehouses for next scans (F5)">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Change WH <span class="bg-purple-200/60 px-1 rounded text-[10px] ml-0.5">F5</span>
+        </button>
+      </div>
+
+      <!-- Change Warehouse Inline Panel (mid-pick) -->
+      <div v-if="showChangeWarehouse && warehouseConfirmed" class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl border-2 border-purple-300 dark:border-purple-700 mb-3 transition-all">
+        <div class="flex items-center justify-between mb-3">
+          <h5 class="text-xs font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Switch Warehouses (next scans will use these)
+          </h5>
+          <button @click="showChangeWarehouse = false" class="text-purple-400 hover:text-purple-600 transition-colors">&times;</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+          <div class="relative" ref="chgSrcDropdownContainer">
+            <label class="block text-[10px] font-bold text-purple-500 uppercase mb-0.5">New Source</label>
+            <input type="text" v-model="chgSourceQuery" @input="onChgSourceInput" @focus="showChgSourceDropdown = true" @keydown.down.prevent="navigateDropdown('chgSource', 1)" @keydown.up.prevent="navigateDropdown('chgSource', -1)" @keydown.enter.prevent="selectHighlighted('chgSource')" @keydown.escape="showChgSourceDropdown = false"
+              class="w-full border-2 border-purple-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 bg-white dark:bg-slate-700 dark:border-purple-600 dark:text-slate-100"
+              :class="{'border-green-400 bg-green-50 dark:bg-green-900/20': chgSourceWarehouse}"
+              :placeholder="sourceWarehouse">
+            <div v-if="showChgSourceDropdown && filteredChgSourceWarehouses.length > 0" class="absolute z-50 mt-1 w-full bg-white dark:bg-slate-700 border-2 border-purple-300 dark:border-purple-600 rounded-lg shadow-xl max-h-44 overflow-y-auto">
+              <button v-for="(w, idx) in filteredChgSourceWarehouses" :key="w" type="button" @mousedown.prevent="selectWarehouse('chgSource', w)"
+                class="w-full text-left px-3 py-2 text-sm font-medium transition-colors truncate"
+                :class="idx === chgSourceHighlight ? 'bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200' : 'hover:bg-gray-50 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200'">
+                {{ w }}
+              </button>
+            </div>
+          </div>
+          <div class="relative" ref="chgDestDropdownContainer">
+            <label class="block text-[10px] font-bold text-purple-500 uppercase mb-0.5">New Destination</label>
+            <input type="text" v-model="chgTargetQuery" @input="onChgTargetInput" @focus="showChgTargetDropdown = true" @keydown.down.prevent="navigateDropdown('chgTarget', 1)" @keydown.up.prevent="navigateDropdown('chgTarget', -1)" @keydown.enter.prevent="selectHighlighted('chgTarget')" @keydown.escape="showChgTargetDropdown = false"
+              class="w-full border-2 border-purple-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 bg-white dark:bg-slate-700 dark:border-purple-600 dark:text-slate-100"
+              :class="{'border-green-400 bg-green-50 dark:bg-green-900/20': chgTargetWarehouse}"
+              :placeholder="targetWarehouse">
+            <div v-if="showChgTargetDropdown && filteredChgTargetWarehouses.length > 0" class="absolute z-50 mt-1 w-full bg-white dark:bg-slate-700 border-2 border-purple-300 dark:border-purple-600 rounded-lg shadow-xl max-h-44 overflow-y-auto">
+              <button v-for="(w, idx) in filteredChgTargetWarehouses" :key="w" type="button" @mousedown.prevent="selectWarehouse('chgTarget', w)"
+                class="w-full text-left px-3 py-2 text-sm font-medium transition-colors truncate"
+                :class="idx === chgTargetHighlight ? 'bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200' : 'hover:bg-gray-50 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200'">
+                {{ w }}
+              </button>
+            </div>
+          </div>
+        </div>
+        <button @click="applyWarehouseChange" :disabled="(!chgSourceWarehouse && !chgTargetWarehouse)"
+          class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-5 rounded-lg text-xs shadow-md transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          Apply &amp; Continue Picking
+        </button>
       </div>
 
       <!-- Item Scanner (only after warehouses confirmed) -->
@@ -206,7 +270,12 @@
                 <div class="text-xs text-green-700/80 truncate" :title="item.item_name">{{ item.item_name || 'No Name' }}</div>
               </div>
             </div>
-            <div class="text-lg font-black bg-white text-green-700 px-3 py-1 rounded shadow-sm border border-green-200 flex-shrink-0">{{ item.qty }}</div>
+            <div class="flex flex-col items-end gap-0.5 flex-shrink-0">
+              <div class="text-lg font-black bg-white text-green-700 px-3 py-1 rounded shadow-sm border border-green-200">{{ item.qty }}</div>
+              <div v-if="item.source_warehouse || item.target_warehouse" class="text-[9px] text-gray-400 font-medium leading-tight text-right max-w-[140px] truncate" :title="(item.source_warehouse || '') + ' → ' + (item.target_warehouse || '')">
+                {{ shortenWH(item.source_warehouse) }} → {{ shortenWH(item.target_warehouse) }}
+              </div>
+            </div>
           </div>
         </div>
         <div v-else class="flex-1 flex flex-col items-center justify-center text-gray-400 opacity-60">
@@ -283,12 +352,19 @@
       <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2 text-center">Create Material Transfer</h3>
       <p class="text-gray-500 dark:text-slate-400 mb-6 text-center font-medium text-sm">Material Request <span class="font-bold text-amber-600">{{ mrName }}</span> has been submitted. Now create the Stock Entry.</p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div>
+        <div class="relative" ref="ccDropdownContainer">
           <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Cost Center *</label>
-          <select v-model="costCenter" class="w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:border-green-500 focus:ring-2 focus:ring-green-500/20 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100">
-            <option value="">Select...</option>
-            <option v-for="cc in costCenters" :key="cc" :value="cc">{{ cc }}</option>
-          </select>
+          <input type="text" v-model="costCenterQuery" @input="onCostCenterInput" @focus="showCCDropdown = true" @keydown.down.prevent="navigateDropdown('cc', 1)" @keydown.up.prevent="navigateDropdown('cc', -1)" @keydown.enter.prevent="selectHighlighted('cc')" @keydown.escape="showCCDropdown = false"
+            class="w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:border-green-500 focus:ring-2 focus:ring-green-500/20 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
+            :class="{'border-green-400 bg-green-50 dark:bg-green-900/20': costCenter && costCenterQuery === costCenter}"
+            placeholder="Type to search cost center...">
+          <div v-if="showCCDropdown && filteredCostCenters.length > 0" class="absolute z-50 mt-1 w-full bg-white dark:bg-slate-700 border-2 border-green-300 dark:border-green-600 rounded-lg shadow-xl max-h-52 overflow-y-auto">
+            <button v-for="(cc, idx) in filteredCostCenters" :key="cc" type="button" @mousedown.prevent="selectWarehouse('cc', cc)"
+              class="w-full text-left px-3 py-2 text-sm font-medium transition-colors truncate"
+              :class="idx === ccHighlight ? 'bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200' : 'hover:bg-gray-50 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200'">
+              {{ cc }}
+            </button>
+          </div>
         </div>
         <div>
           <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Purpose of Transfer</label>
@@ -392,6 +468,41 @@
       </div>
     </div>
 
+    <!-- Qty Override Modal (F3) -->
+    <Transition name="fade">
+      <div v-if="showQtyOverride" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="closeQtyOverride">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-600 p-6 w-full max-w-sm mx-4">
+          <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1 flex items-center gap-2">
+            <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
+            Override Quantity
+          </h3>
+          <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">
+            Item: <span class="font-bold text-gray-700 dark:text-slate-200">{{ qtyOverrideItem?.item_code }}</span>
+            <span v-if="qtyOverrideItem?.item_name" class="text-xs"> — {{ qtyOverrideItem.item_name }}</span>
+          </p>
+          <div class="flex items-center gap-3 mb-4">
+            <label class="text-sm font-bold text-gray-600 dark:text-slate-300 whitespace-nowrap">New Qty:</label>
+            <input type="number" v-model.number="qtyOverrideValue" min="0" step="1" ref="qtyOverrideInputRef"
+              @keydown.enter.prevent="applyQtyOverride" @keydown.escape.prevent="closeQtyOverride"
+              class="flex-1 border-2 border-purple-300 dark:border-purple-600 rounded-lg px-3 py-2.5 text-lg text-center font-black focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 bg-purple-50 dark:bg-purple-900/30 dark:text-purple-200">
+            <span class="text-sm text-gray-400 font-medium">{{ qtyOverrideItem?.uom || 'Nos' }}</span>
+          </div>
+          <div class="text-xs text-gray-400 mb-4">
+            Currently picked: <span class="font-bold">{{ qtyOverrideItem?.qty || 0 }}</span> &nbsp;|&nbsp;
+            Remaining in order: <span class="font-bold">{{ getItemRemainingQty(qtyOverrideItem?.item_code) }}</span>
+          </div>
+          <div class="flex gap-2">
+            <button @click="closeQtyOverride" class="flex-1 py-2.5 px-4 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-xl font-bold text-sm hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
+              Cancel <span class="text-[10px] text-gray-400 ml-1">Esc</span>
+            </button>
+            <button @click="applyQtyOverride" class="flex-1 py-2.5 px-4 bg-purple-600 text-white rounded-xl font-bold text-sm hover:bg-purple-700 transition-colors shadow-md">
+              Apply <span class="text-[10px] bg-black/20 px-1 rounded ml-1">Enter</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Picking History (collapsible) -->
     <div v-if="pickingLog.length > 0" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 mb-6 overflow-hidden">
       <button @click="showLog = !showLog" class="w-full p-4 flex justify-between items-center text-sm font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
@@ -432,7 +543,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 
 const emit = defineEmits(['alert']);
 const props = defineProps({ isLoading: Boolean });
@@ -473,6 +584,272 @@ const isLoading = ref(false);
 
 const soInputRef = ref(null);
 const itemInputRef = ref(null);
+
+// --- AJAX Warehouse Autocomplete State ---
+const sourceWarehouseQuery = ref('');
+const targetWarehouseQuery = ref('');
+const showSourceDropdown = ref(false);
+const showTargetDropdown = ref(false);
+const sourceHighlight = ref(0);
+const targetHighlight = ref(0);
+const srcDropdownContainer = ref(null);
+const destDropdownContainer = ref(null);
+
+// Change warehouse mid-pick state
+const showChangeWarehouse = ref(false);
+const chgSourceQuery = ref('');
+const chgTargetQuery = ref('');
+const chgSourceWarehouse = ref('');
+const chgTargetWarehouse = ref('');
+const showChgSourceDropdown = ref(false);
+const showChgTargetDropdown = ref(false);
+const chgSourceHighlight = ref(0);
+const chgTargetHighlight = ref(0);
+const chgSrcDropdownContainer = ref(null);
+const chgDestDropdownContainer = ref(null);
+
+// Cost Center autocomplete
+const costCenterQuery = ref('');
+const showCCDropdown = ref(false);
+const ccHighlight = ref(0);
+const ccDropdownContainer = ref(null);
+
+// Qty Override (F3) state
+const showQtyOverride = ref(false);
+const qtyOverrideItem = ref(null);
+const qtyOverrideValue = ref(0);
+const qtyOverrideInputRef = ref(null);
+
+// --- AJAX Warehouse Computed ---
+const filteredSourceWarehouses = computed(() => {
+  const q = sourceWarehouseQuery.value.toLowerCase();
+  if (!q) return warehouses.value.slice(0, 30);
+  return warehouses.value.filter(w => w.toLowerCase().includes(q)).slice(0, 30);
+});
+const filteredTargetWarehouses = computed(() => {
+  const q = targetWarehouseQuery.value.toLowerCase();
+  if (!q) return warehouses.value.slice(0, 30);
+  return warehouses.value.filter(w => w.toLowerCase().includes(q)).slice(0, 30);
+});
+const filteredChgSourceWarehouses = computed(() => {
+  const q = chgSourceQuery.value.toLowerCase();
+  if (!q) return warehouses.value.slice(0, 30);
+  return warehouses.value.filter(w => w.toLowerCase().includes(q)).slice(0, 30);
+});
+const filteredChgTargetWarehouses = computed(() => {
+  const q = chgTargetQuery.value.toLowerCase();
+  if (!q) return warehouses.value.slice(0, 30);
+  return warehouses.value.filter(w => w.toLowerCase().includes(q)).slice(0, 30);
+});
+
+const filteredCostCenters = computed(() => {
+  const q = costCenterQuery.value.toLowerCase();
+  if (!q) return costCenters.value.slice(0, 30);
+  return costCenters.value.filter(cc => cc.toLowerCase().includes(q)).slice(0, 30);
+});
+
+const onCostCenterInput = () => { showCCDropdown.value = true; ccHighlight.value = 0; costCenter.value = ''; };
+const onSourceInput = () => { showSourceDropdown.value = true; sourceHighlight.value = 0; sourceWarehouse.value = ''; };
+const onTargetInput = () => { showTargetDropdown.value = true; targetHighlight.value = 0; targetWarehouse.value = ''; };
+const onChgSourceInput = () => { showChgSourceDropdown.value = true; chgSourceHighlight.value = 0; chgSourceWarehouse.value = ''; };
+const onChgTargetInput = () => { showChgTargetDropdown.value = true; chgTargetHighlight.value = 0; chgTargetWarehouse.value = ''; };
+
+const navigateDropdown = (type, dir) => {
+  const map = {
+    source: { highlight: sourceHighlight, list: filteredSourceWarehouses },
+    target: { highlight: targetHighlight, list: filteredTargetWarehouses },
+    chgSource: { highlight: chgSourceHighlight, list: filteredChgSourceWarehouses },
+    chgTarget: { highlight: chgTargetHighlight, list: filteredChgTargetWarehouses },
+    cc: { highlight: ccHighlight, list: filteredCostCenters },
+  };
+  const { highlight, list } = map[type];
+  const len = list.value.length;
+  if (len === 0) return;
+  highlight.value = (highlight.value + dir + len) % len;
+};
+
+const selectWarehouse = (type, value) => {
+  if (type === 'source') { sourceWarehouse.value = value; sourceWarehouseQuery.value = value; showSourceDropdown.value = false; }
+  else if (type === 'target') { targetWarehouse.value = value; targetWarehouseQuery.value = value; showTargetDropdown.value = false; }
+  else if (type === 'chgSource') { chgSourceWarehouse.value = value; chgSourceQuery.value = value; showChgSourceDropdown.value = false; }
+  else if (type === 'chgTarget') { chgTargetWarehouse.value = value; chgTargetQuery.value = value; showChgTargetDropdown.value = false; }
+  else if (type === 'cc') { costCenter.value = value; costCenterQuery.value = value; showCCDropdown.value = false; }
+};
+
+const selectHighlighted = (type) => {
+  const map = {
+    source: { highlight: sourceHighlight, list: filteredSourceWarehouses, show: showSourceDropdown },
+    target: { highlight: targetHighlight, list: filteredTargetWarehouses, show: showTargetDropdown },
+    chgSource: { highlight: chgSourceHighlight, list: filteredChgSourceWarehouses, show: showChgSourceDropdown },
+    chgTarget: { highlight: chgTargetHighlight, list: filteredChgTargetWarehouses, show: showChgTargetDropdown },
+    cc: { highlight: ccHighlight, list: filteredCostCenters, show: showCCDropdown },
+  };
+  const { highlight, list, show } = map[type];
+  if (list.value.length > 0 && show.value) {
+    selectWarehouse(type, list.value[highlight.value]);
+  }
+};
+
+// Close dropdowns on outside click
+const handleClickOutside = (e) => {
+  if (srcDropdownContainer.value && !srcDropdownContainer.value.contains(e.target)) showSourceDropdown.value = false;
+  if (destDropdownContainer.value && !destDropdownContainer.value.contains(e.target)) showTargetDropdown.value = false;
+  if (chgSrcDropdownContainer.value && !chgSrcDropdownContainer.value.contains(e.target)) showChgSourceDropdown.value = false;
+  if (chgDestDropdownContainer.value && !chgDestDropdownContainer.value.contains(e.target)) showChgTargetDropdown.value = false;
+  if (ccDropdownContainer.value && !ccDropdownContainer.value.contains(e.target)) showCCDropdown.value = false;
+};
+
+// Change warehouse mid-pick
+const openChangeWarehouse = () => {
+  showChangeWarehouse.value = true;
+  chgSourceQuery.value = '';
+  chgTargetQuery.value = '';
+  chgSourceWarehouse.value = '';
+  chgTargetWarehouse.value = '';
+};
+
+const applyWarehouseChange = async () => {
+  const newSrc = chgSourceWarehouse.value || sourceWarehouse.value;
+  const newTgt = chgTargetWarehouse.value || targetWarehouse.value;
+  if (newSrc === newTgt) {
+    emit('alert', 'Source and Destination warehouse cannot be the same!', 'error');
+    return;
+  }
+  sourceWarehouse.value = newSrc;
+  sourceWarehouseQuery.value = newSrc;
+  targetWarehouse.value = newTgt;
+  targetWarehouseQuery.value = newTgt;
+  showChangeWarehouse.value = false;
+  // Reload stock for new source
+  try {
+    const itemCodes = itemsToPick.value.map(i => i.item_code);
+    if (itemCodes.length > 0) {
+      const stock = await apiCall('order_picking.api.api.get_stock_for_items', {
+        item_codes: JSON.stringify(itemCodes),
+        warehouse: newSrc
+      });
+      stockLevels.value = stock || {};
+    }
+  } catch(e) {}
+  emit('alert', `Warehouses updated → From: ${newSrc}, To: ${newTgt}. Next scans use these.`, 'success');
+  await nextTick();
+  itemInputRef.value?.focus();
+};
+
+// Shorten warehouse name for display in badges
+const shortenWH = (wh) => {
+  if (!wh) return '?';
+  // Show last part after " - " if exists, otherwise truncate
+  const parts = wh.split(' - ');
+  return parts.length > 1 ? parts[parts.length - 1] : (wh.length > 20 ? wh.substring(0, 18) + '…' : wh);
+};
+
+// --- Qty Override (F3) ---
+const getItemRemainingQty = (itemCode) => {
+  if (!itemCode) return 0;
+  const found = itemsToPick.value.find(i => i.item_code === itemCode);
+  return found ? found.qty : 0;
+};
+
+const openQtyOverride = () => {
+  if (pickedItems.value.length === 0) {
+    emit('alert', 'No picked items to override quantity for.', 'error');
+    return;
+  }
+  // Default to last picked item
+  const lastPicked = pickedItems.value[pickedItems.value.length - 1];
+  qtyOverrideItem.value = { ...lastPicked };
+  qtyOverrideValue.value = lastPicked.qty;
+  showQtyOverride.value = true;
+  nextTick(() => {
+    qtyOverrideInputRef.value?.focus();
+    qtyOverrideInputRef.value?.select();
+  });
+};
+
+const closeQtyOverride = () => {
+  showQtyOverride.value = false;
+  qtyOverrideItem.value = null;
+  qtyOverrideValue.value = 0;
+  nextTick(() => itemInputRef.value?.focus());
+};
+
+const applyQtyOverride = () => {
+  if (!qtyOverrideItem.value) return;
+  const itemCode = qtyOverrideItem.value.item_code;
+  const newQty = Math.max(0, Math.floor(qtyOverrideValue.value || 0));
+  const pickedIdx = pickedItems.value.findIndex(i => i.item_code === itemCode);
+  if (pickedIdx === -1) { closeQtyOverride(); return; }
+
+  const oldQty = pickedItems.value[pickedIdx].qty;
+  const diff = newQty - oldQty;
+
+  // Adjust remaining in itemsToPick
+  const toPickIdx = itemsToPick.value.findIndex(i => i.item_code === itemCode);
+  if (toPickIdx !== -1) {
+    const maxAddable = itemsToPick.value[toPickIdx].qty; // how much is left
+    if (diff > 0 && diff > maxAddable) {
+      emit('alert', `Cannot add ${diff} — only ${maxAddable} remaining to pick.`, 'error');
+      return;
+    }
+    itemsToPick.value[toPickIdx].qty -= diff;
+  } else if (diff > 0) {
+    emit('alert', 'Cannot increase — item already fully picked.', 'error');
+    return;
+  }
+
+  if (newQty <= 0) {
+    // Remove from picked, return qty to toPick
+    pickedItems.value.splice(pickedIdx, 1);
+  } else {
+    pickedItems.value[pickedIdx].qty = newQty;
+  }
+
+  // Log the override
+  pickingLog.value.push({
+    time: new Date().toLocaleTimeString(),
+    item_code: itemCode,
+    barcode: '(F3 override)',
+    qty: newQty,
+    uom_factor: `was ${oldQty}`,
+    multiplier: '→' + newQty
+  });
+
+  emit('alert', `Qty for ${itemCode} changed: ${oldQty} → ${newQty}`, 'success');
+  closeQtyOverride();
+};
+
+// B2B keyboard handler
+const handleB2BKeydown = (e) => {
+  // F3: Qty Override
+  if (e.key === 'F3') {
+    e.preventDefault();
+    if (currentStep.value === 1 && warehouseConfirmed.value && pickedItems.value.length > 0) {
+      openQtyOverride();
+    }
+  }
+  // F5: Change Warehouse
+  if (e.key === 'F5') {
+    e.preventDefault();
+    if (currentStep.value === 1 && warehouseConfirmed.value) {
+      if (showChangeWarehouse.value) {
+        showChangeWarehouse.value = false;
+        nextTick(() => itemInputRef.value?.focus());
+      } else {
+        openChangeWarehouse();
+      }
+    }
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+  window.addEventListener('keydown', handleB2BKeydown);
+});
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+  window.removeEventListener('keydown', handleB2BKeydown);
+});
 
 // CSRF
 const csrf_token = window?.frappe?.csrf_token || '';
@@ -564,6 +941,9 @@ const handleSOScan = async () => {
       soScan.value = '';
       warehouseConfirmed.value = false;
       stockLevels.value = {};
+      showChangeWarehouse.value = false;
+      sourceWarehouseQuery.value = sourceWarehouse.value;
+      targetWarehouseQuery.value = targetWarehouse.value;
       emit('alert', `Loaded Sales Order ${currentSO.value} — Customer: ${customerName.value}. Select warehouses to start picking.`, 'success');
     }
   } catch(e) {
@@ -634,7 +1014,10 @@ const handleItemScan = () => {
 
   itemsToPick.value[foundIndex].qty -= actualQty;
 
-  const pickedIndex = pickedItems.value.findIndex(i => i.item_code === matchItemCode);
+  // Use a composite key: item_code + source + target warehouse for multi-WH support
+  const activeSrc = sourceWarehouse.value;
+  const activeTgt = targetWarehouse.value;
+  const pickedIndex = pickedItems.value.findIndex(i => i.item_code === matchItemCode && i.source_warehouse === activeSrc && i.target_warehouse === activeTgt);
   if (pickedIndex !== -1) {
     pickedItems.value[pickedIndex].qty += actualQty;
   } else {
@@ -643,7 +1026,9 @@ const handleItemScan = () => {
       item_name: itemsToPick.value[foundIndex].item_name,
       image: itemsToPick.value[foundIndex].image,
       uom: itemsToPick.value[foundIndex].uom,
-      qty: actualQty
+      qty: actualQty,
+      source_warehouse: activeSrc,
+      target_warehouse: activeTgt,
     });
   }
 
@@ -701,7 +1086,14 @@ const createMR = async () => {
   try {
     // Determine if this is a partial pick
     isPartialPick.value = percentage.value < 100;
-    const items = pickedItems.value.map(i => ({ item_code: i.item_code, qty: i.qty, uom: i.uom || 'Nos' }));
+    // Include per-item warehouse info for multi source/dest support
+    const items = pickedItems.value.map(i => ({
+      item_code: i.item_code,
+      qty: i.qty,
+      uom: i.uom || 'Nos',
+      source_warehouse: i.source_warehouse || sourceWarehouse.value,
+      target_warehouse: i.target_warehouse || targetWarehouse.value,
+    }));
     const data = await apiCall('order_picking.api.api.create_b2b_material_request', {
       so_name: currentSO.value,
       items: JSON.stringify(items),
@@ -793,7 +1185,10 @@ const resetForNextOrder = async () => {
   currentStep.value = 1;
   sourceWarehouse.value = '';
   targetWarehouse.value = '';
+  sourceWarehouseQuery.value = '';
+  targetWarehouseQuery.value = '';
   costCenter.value = '';
+  costCenterQuery.value = '';
   purposeOfTransfer.value = '';
   lastScanInfo.value = '';
   manualQtyMultiplier.value = 1;
@@ -803,6 +1198,8 @@ const resetForNextOrder = async () => {
   warehouseConfirmed.value = false;
   stockLevels.value = {};
   isPartialPick.value = false;
+  showChangeWarehouse.value = false;
+  showQtyOverride.value = false;
   const today = new Date();
   const yyyy = today.getFullYear();
   const mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -813,5 +1210,5 @@ const resetForNextOrder = async () => {
 };
 
 // Expose refs for parent focus management
-defineExpose({ soInputRef, itemInputRef });
+defineExpose({ soInputRef, itemInputRef, openQtyOverride, openChangeWarehouse });
 </script>
