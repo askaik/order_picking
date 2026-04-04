@@ -30,9 +30,8 @@ def restore_sales_invoice_statuses():
 			doc = frappe.get_doc("Sales Invoice", invoice.name)
 			new_status = calculate_invoice_status(doc)
 
-			if new_status and new_status != doc.status:
-				doc.status = new_status
-				doc.save()
+			if new_status and new_status != invoice.status:
+				frappe.db.set_value("Sales Invoice", invoice.name, "status", new_status, update_modified=False)
 				restored_count += 1
 				print(f"Restored status for {invoice.name}: {new_status}")
 			else:
