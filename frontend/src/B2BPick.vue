@@ -469,7 +469,7 @@
       </div>
     </div>
 
-    <!-- Qty Override Modal (F4) — Scanner-friendly, large layout -->
+    <!-- Qty Override Modal (F9) — Scanner-friendly, large layout -->
     <Transition name="fade">
       <div v-if="showQtyOverride" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="closeQtyOverride">
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border-2 border-purple-300 dark:border-purple-600 p-8 w-full max-w-lg mx-4">
@@ -666,7 +666,7 @@ const showCCDropdown = ref(false);
 const ccHighlight = ref(0);
 const ccDropdownContainer = ref(null);
 
-// Qty Override (F4) state
+// Qty Override (F9) state
 const showQtyOverride = ref(false);
 const qtyOverrideItem = ref(null);
 const qtyOverrideValue = ref(0);
@@ -921,7 +921,7 @@ const applyQtyOverride = () => {
   pickingLog.value.push({
     time: new Date().toLocaleTimeString(),
     item_code: itemCode,
-    barcode: '(F4 override)',
+    barcode: '(F9 override)',
     qty: newQty,
     uom_factor: `was ${oldQty}`,
     multiplier: '→' + newQty
@@ -933,8 +933,8 @@ const applyQtyOverride = () => {
 
 // B2B keyboard handler
 const handleB2BKeydown = (e) => {
-  // F4: Qty Override (scanner-friendly popup)
-  if (e.key === 'F4') {
+  // F9: Qty Override (scanner-friendly popup)
+  if (e.key === 'F9') {
     e.preventDefault();
     if (currentStep.value === 1 && warehouseConfirmed.value) {
       openQtyOverride();
@@ -1124,7 +1124,7 @@ const handleItemScan = () => {
   const remaining = itemsToPick.value[foundIndex].qty;
 
   if (scanQty > remaining) {
-    emit('alert', `Over-pick! Trying to add ${scanQty} but only ${remaining} remaining for ${matchItemCode}. Adjust the × Qty multiplier or use F4 to override.`, 'error');
+    emit('alert', `Over-pick! Trying to add ${scanQty} but only ${remaining} remaining for ${matchItemCode}. Reduce the × Qty or use F9 to manually set the exact quantity.`, 'error');
     itemScan.value = '';
     return;
   }
