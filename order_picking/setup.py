@@ -4,15 +4,8 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 def after_migrate():
 	"""
 	Run after bench migrate.
-	This ensures the custom_ready_to_dispatch field is always present
-	in the Sales Invoice doctype without relying on fixtures.
+	This ensures the custom fields are always present without relying on fixtures.
 	"""
-	if frappe.db.has_column("Sales Invoice", "custom_ready_to_dispatch"):
-		try:
-			frappe.db.sql("UPDATE `tabSales Invoice` SET `custom_ready_to_dispatch` = 0 WHERE `custom_ready_to_dispatch` not in ('0', '1', 0, 1) or `custom_ready_to_dispatch` is null")
-			frappe.db.commit()
-		except Exception:
-			pass
 	setup_custom_fields()
 
 def setup_custom_fields():
