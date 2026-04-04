@@ -182,27 +182,37 @@
       </div>
 
       <!-- Item Scanner (only after warehouses confirmed) -->
-      <div v-if="warehouseConfirmed" class="flex flex-row gap-2">
-        <div class="flex-1 relative group">
-          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <svg class="w-6 h-6 text-gray-400 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+      <div v-if="warehouseConfirmed" class="flex flex-col gap-2">
+        <div class="flex flex-row gap-2">
+          <div class="flex-1 relative group">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <svg class="w-6 h-6 text-gray-400 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+            </div>
+            <input v-model="itemScan" @keyup.enter="handleItemScan" type="text" id="scan_b2b_item_input"
+              :class="{'ring-4 ring-green-400/50 border-green-400': flashSuccess, 'border-red-400 ring-4 ring-red-400/30 bg-red-50 dark:bg-red-900/20': scanError, 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/20': !flashSuccess && !scanError}"
+              class="w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:ring-4 transition-all shadow-sm font-medium bg-white dark:bg-slate-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 disabled:bg-gray-100 dark:disabled:bg-slate-900 disabled:cursor-not-allowed"
+              placeholder="Scan Item Barcode (supports UOM/Box)..."
+              :disabled="percentage === 100 || isLoading" ref="itemInputRef">
           </div>
-          <input v-model="itemScan" @keyup.enter="handleItemScan" type="text" id="scan_b2b_item_input"
-            :class="{'ring-4 ring-green-400/50 bg-green-50': flashSuccess, 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/20': !flashSuccess}"
-            class="w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:ring-4 transition-all shadow-sm font-medium bg-white dark:bg-slate-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 disabled:bg-gray-100 dark:disabled:bg-slate-900 disabled:cursor-not-allowed"
-            placeholder="Scan Item Barcode (supports UOM/Box)..."
-            :disabled="percentage === 100 || isLoading" ref="itemInputRef">
-        </div>
-        <!-- Manual Qty Multiplier -->
-        <div class="w-24 flex-shrink-0">
-          <div class="relative">
-            <label class="absolute -top-2 left-2 bg-white dark:bg-slate-800 px-1 text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider z-10">× Qty</label>
-            <input v-model.number="manualQtyMultiplier" type="number" min="1" step="1"
-              @keydown.enter.prevent="handleItemScan"
-              class="w-full py-4 px-3 text-lg text-center border-2 border-purple-300 dark:border-purple-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all shadow-sm font-black bg-purple-50 dark:bg-purple-900/30 dark:text-purple-200"
-              :disabled="percentage === 100 || isLoading">
+          <!-- Manual Qty Multiplier -->
+          <div class="w-24 flex-shrink-0">
+            <div class="relative">
+              <label class="absolute -top-2 left-2 bg-white dark:bg-slate-800 px-1 text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider z-10">× Qty</label>
+              <input v-model.number="manualQtyMultiplier" type="number" min="1" step="1"
+                @keydown.enter.prevent="handleItemScan"
+                class="w-full py-4 px-3 text-lg text-center border-2 border-purple-300 dark:border-purple-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all shadow-sm font-black bg-purple-50 dark:bg-purple-900/30 dark:text-purple-200"
+                :disabled="percentage === 100 || isLoading">
+            </div>
           </div>
         </div>
+        <!-- Inline Over-pick Error Banner -->
+        <Transition name="fade">
+          <div v-if="scanError" class="flex items-center gap-3 bg-red-600 text-white px-4 py-3 rounded-xl shadow-lg font-bold text-sm">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+            <span>{{ scanError }}</span>
+            <button @click="scanError = ''" class="ml-auto text-white/80 hover:text-white text-lg leading-none">&times;</button>
+          </div>
+        </Transition>
       </div>
     </div>
 
@@ -296,13 +306,12 @@
 
     <!-- Action: Create Material Request (after picking - full or partial) -->
     <div v-if="currentStep === 1 && pickedItems.length > 0 && currentSO && warehouseConfirmed" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 mb-6">
-      <!-- Partial Delivery Warning -->
-      <div v-if="percentage < 100" class="mb-4 bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-start gap-3">
-        <svg class="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
-        <div>
-          <p class="text-sm font-bold text-orange-800">Partial Pick — {{ percentage }}% completed</p>
-          <p class="text-xs text-orange-600 mt-1">Not all items are fully picked. Proceeding will mark this order as <strong>"Consignment Partially Delivered"</strong>. Remaining items will not be included in the Material Request.</p>
-        </div>
+      <!-- Partial Delivery Info (B2B allows any %) -->
+      <div v-if="percentage < 100" class="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex items-center gap-3">
+        <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-sm text-blue-700 dark:text-blue-300">
+          <span class="font-bold">{{ percentage }}% picked</span> — You can proceed at any quantity. Order will be marked <strong>"Consignment Partially Delivered"</strong>.
+        </p>
       </div>
       <div v-if="percentage === 100" class="mb-4 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
         <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -636,6 +645,8 @@ const isLoading = ref(false);
 
 const soInputRef = ref(null);
 const itemInputRef = ref(null);
+const scanError = ref('');
+let scanErrorTimer = null;
 
 // --- AJAX Warehouse Autocomplete State ---
 const sourceWarehouseQuery = ref('');
@@ -885,18 +896,10 @@ const applyQtyOverride = () => {
   const oldQty = pickedIdx !== -1 ? pickedItems.value[pickedIdx].qty : 0;
   const diff = newQty - oldQty;
 
-  // Adjust remaining in itemsToPick
+  // Override bypasses qty restrictions — clamp remaining at 0, never go negative
   const toPickIdx = itemsToPick.value.findIndex(i => i.item_code === itemCode);
   if (toPickIdx !== -1) {
-    const maxAddable = itemsToPick.value[toPickIdx].qty;
-    if (diff > 0 && diff > maxAddable) {
-      emit('alert', `Over-pick! Trying to set ${newQty} but only ${maxAddable + oldQty} total available for ${itemCode}.`, 'error');
-      return;
-    }
-    itemsToPick.value[toPickIdx].qty -= diff;
-  } else if (diff > 0) {
-    emit('alert', `Over-pick! Item ${itemCode} already fully picked — cannot increase.`, 'error');
-    return;
+    itemsToPick.value[toPickIdx].qty = Math.max(0, itemsToPick.value[toPickIdx].qty - diff);
   }
 
   if (newQty <= 0 && pickedIdx !== -1) {
@@ -961,6 +964,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
   window.removeEventListener('keydown', handleB2BKeydown);
+  if (scanErrorTimer) clearTimeout(scanErrorTimer);
 });
 
 // CSRF
@@ -1107,27 +1111,35 @@ const handleItemScan = () => {
   }
 
   if (!matchItemCode) {
-    emit('alert', 'Barcode not found in this Sales Order!', 'error');
+    scanError.value = `Barcode not found in this Sales Order: ${val}`;
+    if (scanErrorTimer) clearTimeout(scanErrorTimer);
+    scanErrorTimer = setTimeout(() => { scanError.value = ''; }, 5000);
     itemScan.value = '';
     return;
   }
 
   const foundIndex = itemsToPick.value.findIndex(i => i.item_code === matchItemCode);
   if (foundIndex === -1 || itemsToPick.value[foundIndex].qty <= 0) {
-    emit('alert', 'Item already fully picked!', 'error');
+    scanError.value = `${matchItemCode} is already fully picked! Use F9 to override.`;
+    if (scanErrorTimer) clearTimeout(scanErrorTimer);
+    scanErrorTimer = setTimeout(() => { scanError.value = ''; }, 5000);
     itemScan.value = '';
     return;
   }
+  scanError.value = '';
 
   // Total qty = UOM factor × manual multiplier — reject if over remaining
   const scanQty = uomFactor * multiplier;
   const remaining = itemsToPick.value[foundIndex].qty;
 
   if (scanQty > remaining) {
-    emit('alert', `Over-pick! Trying to add ${scanQty} but only ${remaining} remaining for ${matchItemCode}. Reduce the × Qty or use F9 to manually set the exact quantity.`, 'error');
+    scanError.value = `Over-pick! Adding ${scanQty} but only ${remaining} left for ${matchItemCode}. Reduce × Qty, or press F9 to override.`;
+    if (scanErrorTimer) clearTimeout(scanErrorTimer);
+    scanErrorTimer = setTimeout(() => { scanError.value = ''; }, 5000);
     itemScan.value = '';
     return;
   }
+  scanError.value = '';
 
   const actualQty = scanQty;
   itemsToPick.value[foundIndex].qty -= actualQty;
@@ -1317,6 +1329,8 @@ const resetForNextOrder = async () => {
   isPartialPick.value = false;
   showChangeWarehouse.value = false;
   showQtyOverride.value = false;
+  scanError.value = '';
+  if (scanErrorTimer) clearTimeout(scanErrorTimer);
   const today = new Date();
   const yyyy = today.getFullYear();
   const mm = String(today.getMonth() + 1).padStart(2, '0');
