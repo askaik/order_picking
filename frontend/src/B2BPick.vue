@@ -31,12 +31,12 @@
           <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
           B2B Picking Progress
         </h4>
-        <div class="text-2xl font-black" :class="percentage === 100 ? 'text-green-600' : 'text-purple-600'">{{ percentage }}%</div>
+        <div class="text-2xl font-black" :class="percentage >= 100 ? 'text-green-600' : 'text-purple-600'">{{ percentage }}%</div>
       </div>
       <div class="w-full bg-gray-100 rounded-full h-4 mb-2 overflow-hidden shadow-inner ring-1 ring-inset ring-gray-200/50">
         <div class="h-4 rounded-full transition-all duration-500 ease-out relative"
-          :class="percentage === 100 ? 'bg-gradient-to-r from-green-400 to-green-500' : 'bg-gradient-to-r from-purple-400 to-indigo-500'"
-          :style="{ width: percentage + '%' }">
+          :class="percentage >= 100 ? 'bg-gradient-to-r from-green-400 to-green-500' : 'bg-gradient-to-r from-purple-400 to-indigo-500'"
+          :style="{ width: Math.min(percentage, 100) + '%' }">
           <div class="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite] -skew-x-12 translate-x-[-100%]"></div>
         </div>
       </div>
@@ -192,7 +192,7 @@
               :class="{'ring-4 ring-green-400/50 border-green-400': flashSuccess, 'border-red-400 ring-4 ring-red-400/30 bg-red-50 dark:bg-red-900/20': scanError, 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/20': !flashSuccess && !scanError}"
               class="w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:ring-4 transition-all shadow-sm font-medium bg-white dark:bg-slate-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 disabled:bg-gray-100 dark:disabled:bg-slate-900 disabled:cursor-not-allowed"
               placeholder="Scan Item Barcode (supports UOM/Box)..."
-              :disabled="percentage === 100 || isLoading" ref="itemInputRef">
+              :disabled="isLoading" ref="itemInputRef">
           </div>
           <!-- Manual Qty Multiplier -->
           <div class="w-24 flex-shrink-0">
@@ -201,7 +201,7 @@
               <input v-model.number="manualQtyMultiplier" type="number" min="1" step="1"
                 @keydown.enter.prevent="handleItemScan"
                 class="w-full py-4 px-3 text-lg text-center border-2 border-purple-300 dark:border-purple-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all shadow-sm font-black bg-purple-50 dark:bg-purple-900/30 dark:text-purple-200"
-                :disabled="percentage === 100 || isLoading">
+                :disabled="isLoading">
             </div>
           </div>
         </div>
@@ -267,22 +267,25 @@
           <span class="bg-green-50 text-green-700 px-2 py-0.5 rounded text-xs border border-green-100">{{ pickedItems.reduce((a, o) => a + o.qty, 0) }} total</span>
         </h4>
         <div class="flex-1 overflow-y-auto pr-2 -mr-2 space-y-2" v-if="pickedItems.length > 0">
-          <div v-for="item in pickedItems" :key="item.item_code"
-            class="flex justify-between items-center bg-green-50 border border-green-100 p-3 rounded-lg shadow-sm gap-3">
+          <div v-for="item in pickedItems" :key="item.item_code + item.source_warehouse"
+            @click="askRemoveItem(item)"
+            class="flex justify-between items-center bg-green-50 border border-green-100 p-3 rounded-lg shadow-sm gap-3 cursor-pointer hover:bg-red-50 hover:border-red-200 group transition-colors"
+            title="Click to remove">
             <div class="flex items-center gap-3 overflow-hidden">
               <div v-if="item.image" class="w-10 h-10 flex-shrink-0 bg-white rounded-md border border-green-200 overflow-hidden p-0.5 flex items-center justify-center">
                 <img :src="item.image" class="max-w-full max-h-full object-contain" :alt="item.item_code">
               </div>
               <div class="flex flex-col overflow-hidden">
-                <div class="font-bold text-green-800 tracking-wide flex items-center gap-1.5 truncate">
-                  <svg class="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                <div class="font-bold text-green-800 group-hover:text-red-700 tracking-wide flex items-center gap-1.5 truncate transition-colors">
+                  <svg class="w-4 h-4 text-green-600 group-hover:hidden flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                  <svg class="w-4 h-4 text-red-500 hidden group-hover:block flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                   <span class="truncate">{{ item.item_code }}</span>
                 </div>
-                <div class="text-xs text-green-700/80 truncate" :title="item.item_name">{{ item.item_name || 'No Name' }}</div>
+                <div class="text-xs text-green-700/80 group-hover:text-red-500/80 truncate transition-colors" :title="item.item_name">{{ item.item_name || 'No Name' }}</div>
               </div>
             </div>
             <div class="flex flex-col items-end gap-0.5 flex-shrink-0">
-              <div class="text-lg font-black bg-white text-green-700 px-3 py-1 rounded shadow-sm border border-green-200">{{ item.qty }}</div>
+              <div class="text-lg font-black bg-white text-green-700 group-hover:text-red-600 group-hover:border-red-200 px-3 py-1 rounded shadow-sm border border-green-200 transition-colors">{{ item.qty }}</div>
               <div v-if="item.source_warehouse || item.target_warehouse" class="text-[9px] text-gray-400 font-medium leading-tight text-right max-w-[140px] truncate" :title="(item.source_warehouse || '') + ' → ' + (item.target_warehouse || '')">
                 {{ shortenWH(item.source_warehouse) }} → {{ shortenWH(item.target_warehouse) }}
               </div>
@@ -313,9 +316,11 @@
           <span class="font-bold">{{ percentage }}% picked</span> — You can proceed at any quantity. Order will be marked <strong>"Consignment Partially Delivered"</strong>.
         </p>
       </div>
-      <div v-if="percentage === 100" class="mb-4 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+      <div v-if="percentage >= 100" class="mb-4 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
         <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <p class="text-sm font-bold text-green-800">All items fully picked! This will be marked as "Consignment Delivered".</p>
+        <p class="text-sm font-bold text-green-800">
+          {{ percentage > 100 ? `Over-picked at ${percentage}% — ` : 'All items fully picked! — ' }}This will be marked as "Consignment Delivered".
+        </p>
       </div>
       <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4 flex items-center gap-2">
         <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
@@ -477,6 +482,36 @@
         </div>
       </div>
     </div>
+
+    <!-- Remove Item Confirmation Modal -->
+    <Transition name="fade">
+      <div v-if="removeTarget" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="removeTarget = null">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border-2 border-red-300 dark:border-red-700 p-7 w-full max-w-sm mx-4">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 bg-red-100 dark:bg-red-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </div>
+            <h3 class="text-lg font-black text-gray-800 dark:text-white">Remove Picked Item?</h3>
+          </div>
+          <p class="text-sm text-gray-600 dark:text-slate-300 mb-1">
+            <span class="font-bold text-gray-800 dark:text-white">{{ removeTarget?.item_code }}</span>
+          </p>
+          <p class="text-xs text-gray-400 dark:text-slate-500 mb-5">{{ removeTarget?.item_name }}</p>
+          <div class="bg-gray-50 dark:bg-slate-700 rounded-lg px-4 py-2 mb-5 flex items-center justify-between text-sm">
+            <span class="text-gray-500 dark:text-slate-400">Qty to return:</span>
+            <span class="font-black text-red-600">−{{ removeTarget?.qty }} {{ removeTarget?.uom }}</span>
+          </div>
+          <div class="flex gap-3">
+            <button @click="removeTarget = null" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-xl font-bold text-sm hover:bg-gray-200 transition-colors">
+              No, Keep It
+            </button>
+            <button @click="confirmRemoveItem" class="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-colors shadow-md">
+              Yes, Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Qty Override Modal (F9) — Scanner-friendly, large layout -->
     <Transition name="fade">
@@ -647,6 +682,8 @@ const soInputRef = ref(null);
 const itemInputRef = ref(null);
 const scanError = ref('');
 let scanErrorTimer = null;
+const originalTotalQty = ref(0); // sum of all order item qtys — denominator for % (allows >100)
+const originalItems = ref([]);   // [{item_code, qty}] — for Order Qty column in print
 
 // --- AJAX Warehouse Autocomplete State ---
 const sourceWarehouseQuery = ref('');
@@ -676,6 +713,38 @@ const costCenterQuery = ref('');
 const showCCDropdown = ref(false);
 const ccHighlight = ref(0);
 const ccDropdownContainer = ref(null);
+
+// Remove item confirmation
+const removeTarget = ref(null);
+
+const askRemoveItem = (item) => {
+  removeTarget.value = { ...item };
+};
+
+const confirmRemoveItem = () => {
+  if (!removeTarget.value) return;
+  const item = removeTarget.value;
+  const pickedIdx = pickedItems.value.findIndex(i => i.item_code === item.item_code && i.source_warehouse === item.source_warehouse && i.target_warehouse === item.target_warehouse);
+  if (pickedIdx !== -1) {
+    pickedItems.value.splice(pickedIdx, 1);
+    // Return qty to itemsToPick
+    const toPickIdx = itemsToPick.value.findIndex(i => i.item_code === item.item_code);
+    if (toPickIdx !== -1) {
+      itemsToPick.value[toPickIdx].qty += item.qty;
+    }
+    pickingLog.value.push({
+      time: new Date().toLocaleTimeString(),
+      item_code: item.item_code,
+      barcode: '(removed)',
+      qty: 0,
+      uom_factor: `removed ${item.qty}`,
+      multiplier: '×0'
+    });
+    emit('alert', `Removed ${item.item_code} (${item.qty} ${item.uom || 'Nos'}) from picked items.`, 'success');
+  }
+  removeTarget.value = null;
+  nextTick(() => itemInputRef.value?.focus());
+};
 
 // Qty Override (F9) state
 const showQtyOverride = ref(false);
@@ -936,6 +1005,14 @@ const applyQtyOverride = () => {
 
 // B2B keyboard handler
 const handleB2BKeydown = (e) => {
+  // Ctrl+Z: Remove last picked item (undo)
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+    if (currentStep.value === 1 && pickedItems.value.length > 0 && !showQtyOverride.value && !removeTarget.value) {
+      e.preventDefault();
+      askRemoveItem(pickedItems.value[pickedItems.value.length - 1]);
+    }
+    return;
+  }
   // F9: Qty Override (scanner-friendly popup)
   if (e.key === 'F9') {
     e.preventDefault();
@@ -1002,13 +1079,10 @@ const apiCall = async (method, args = {}) => {
 };
 
 const percentage = computed(() => {
-  const totalRemaining = itemsToPick.value.reduce((a, o) => a + o.qty, 0);
+  if (originalTotalQty.value === 0) return 0;
   const totalPicked = pickedItems.value.reduce((a, o) => a + o.qty, 0);
-  const total = totalRemaining + totalPicked;
-  if (total === 0) return 0;
-  // Only show 100% when truly complete — prevents premature scanner disable
-  if (totalRemaining === 0) return 100;
-  return Math.min(99, Math.floor((totalPicked / total) * 100));
+  // Can exceed 100% when over-picked via F9 override
+  return Math.round((totalPicked / originalTotalQty.value) * 100);
 });
 
 const stepClass = (step) => {
@@ -1049,6 +1123,8 @@ const handleSOScan = async () => {
       customerName.value = data.customer_name || '';
       soStatus.value = data.status || null;
       itemsToPick.value = JSON.parse(JSON.stringify(data.items));
+      originalItems.value = data.items.map(i => ({ item_code: i.item_code, qty: i.qty, item_name: i.item_name, uom: i.uom }));
+      originalTotalQty.value = data.items.reduce((a, i) => a + i.qty, 0);
       pickedItems.value = [];
       barcodeMap.value = data.barcode_map || {};
       currentStep.value = 1;
@@ -1190,18 +1266,30 @@ const handleItemScan = () => {
 };
 
 const printPickList = () => {
-  const rows = pickedItems.value.map((item, idx) =>
-    `<tr><td style="padding:6px 12px;border:1px solid #ddd">${idx+1}</td><td style="padding:6px 12px;border:1px solid #ddd;font-weight:bold">${item.item_code}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.item_name||''}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:bold">${item.qty}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.uom||'Nos'}</td></tr>`
-  ).join('');
+  const orderQtyMap = {};
+  originalItems.value.forEach(i => { orderQtyMap[i.item_code] = i.qty; });
+  const rows = pickedItems.value.map((item, idx) => {
+    const orderQty = orderQtyMap[item.item_code] || 0;
+    const overPick = item.qty > orderQty;
+    return `<tr>
+      <td style="padding:6px 12px;border:1px solid #ddd">${idx+1}</td>
+      <td style="padding:6px 12px;border:1px solid #ddd;font-weight:bold">${item.item_code}</td>
+      <td style="padding:6px 12px;border:1px solid #ddd">${item.item_name||''}</td>
+      <td style="padding:6px 12px;border:1px solid #ddd;text-align:right;color:#666">${orderQty}</td>
+      <td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:bold;color:${overPick?'#dc2626':'#16a34a'}">${item.qty}${overPick?' ⚠':'</td>'}</td>
+      <td style="padding:6px 12px;border:1px solid #ddd">${item.uom||'Nos'}</td>
+      <td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.source_warehouse||''} → ${item.target_warehouse||''}</td>
+    </tr>`;
+  }).join('');
   const logRows = pickingLog.value.map((log, idx) =>
     `<tr><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">${idx+1}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">${log.time}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;font-weight:bold">${log.item_code}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;font-family:monospace">${log.barcode}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;text-align:right;font-weight:bold">${log.qty}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">×${log.multiplier} (${log.uom_factor})</td></tr>`
   ).join('');
   const html = `<html><head><title>B2B Pick List — ${currentSO.value}</title><style>body{font-family:system-ui,sans-serif;padding:30px;color:#333}table{border-collapse:collapse;width:100%}th{background:#f3f4f6;text-align:left;padding:8px 12px;border:1px solid #ddd;font-size:12px;text-transform:uppercase}</style></head><body>` +
     `<h1 style="margin:0 0 4px">B2B Pick List</h1>` +
-    `<p style="color:#666;margin:0 0 4px"><strong>Sales Order:</strong> ${currentSO.value} &nbsp; <strong>Customer:</strong> ${customerName.value} &nbsp; <strong>Status:</strong> ${soStatus.value||'N/A'}</p>` +
+    `<p style="color:#666;margin:0 0 4px"><strong>Sales Order:</strong> ${currentSO.value} &nbsp; <strong>Customer:</strong> ${customerName.value} &nbsp; <strong>Status:</strong> ${soStatus.value||'N/A'} &nbsp; <strong>Picked:</strong> ${percentage.value}%</p>` +
     `<p style="color:#999;margin:0 0 20px;font-size:12px">Printed: ${new Date().toLocaleString()}</p>` +
     `<h3 style="margin:0 0 8px">Picked Items Summary</h3>` +
-    `<table><thead><tr><th>#</th><th>Item Code</th><th>Item Name</th><th style="text-align:right">Qty</th><th>UOM</th></tr></thead><tbody>${rows}</tbody></table>` +
+    `<table><thead><tr><th>#</th><th>Item Code</th><th>Item Name</th><th style="text-align:right">Order Qty</th><th style="text-align:right">Picked Qty</th><th>UOM</th><th>Warehouse</th></tr></thead><tbody>${rows}</tbody></table>` +
     (logRows ? `<h3 style="margin:24px 0 8px">Scan Log</h3><table><thead><tr><th>#</th><th>Time</th><th>Item</th><th>Barcode</th><th style="text-align:right">Qty</th><th>Details</th></tr></thead><tbody>${logRows}</tbody></table>` : '') +
     `</body></html>`;
   const w = window.open('', '_blank');
@@ -1281,9 +1369,13 @@ const createSE = async () => {
 
 const printCompletedSummary = () => {
   const c = completedSE.value;
-  const rows = c.items.map((item, idx) =>
-    `<tr><td style="padding:6px 12px;border:1px solid #ddd">${idx+1}</td><td style="padding:6px 12px;border:1px solid #ddd;font-weight:bold">${item.item_code}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.item_name||''}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:bold">${item.qty}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.uom||'Nos'}</td><td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.from_warehouse||''}</td><td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.to_warehouse||''}</td></tr>`
-  ).join('');
+  const orderQtyMap = {};
+  originalItems.value.forEach(i => { orderQtyMap[i.item_code] = (orderQtyMap[i.item_code] || 0) + i.qty; });
+  const rows = c.items.map((item, idx) => {
+    const orderQty = orderQtyMap[item.item_code] || 0;
+    const overPick = item.qty > orderQty;
+    return `<tr><td style="padding:6px 12px;border:1px solid #ddd">${idx+1}</td><td style="padding:6px 12px;border:1px solid #ddd;font-weight:bold">${item.item_code}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.item_name||''}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right">${orderQty}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:bold;color:${overPick?'#dc2626':'#16a34a'}">${item.qty}${overPick?' ⚠':''}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.uom||'Nos'}</td><td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.from_warehouse||''}</td><td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.to_warehouse||''}</td></tr>`;
+  }).join('');
   const logRows = pickingLog.value.map((log, idx) =>
     `<tr><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">${idx+1}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">${log.time}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;font-weight:bold">${log.item_code}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;font-family:monospace">${log.barcode}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;text-align:right;font-weight:bold">${log.qty}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">&times;${log.multiplier} (${log.uom_factor})</td></tr>`
   ).join('');
@@ -1293,7 +1385,7 @@ const printCompletedSummary = () => {
     `<p style="color:#666;margin:0 0 4px"><span class="badge" style="background:#fef3c7;color:#92400e">MR: ${c.mr_name}</span><span class="badge" style="background:#d1fae5;color:#065f46">SE: ${c.se_name}</span></p>` +
     `<p style="color:#999;margin:0 0 20px;font-size:12px">Printed: ${new Date().toLocaleString()}</p>` +
     `<h3 style="margin:0 0 8px">Transfer Items</h3>` +
-    `<table><thead><tr><th>#</th><th>Item Code</th><th>Item Name</th><th style="text-align:right">Qty</th><th>UOM</th><th>Source WH</th><th>Dest WH</th></tr></thead><tbody>${rows}</tbody></table>` +
+    `<table><thead><tr><th>#</th><th>Item Code</th><th>Item Name</th><th style="text-align:right">Order Qty</th><th style="text-align:right">Picked Qty</th><th>UOM</th><th>Source WH</th><th>Dest WH</th></tr></thead><tbody>${rows}</tbody></table>` +
     (logRows ? `<h3 style="margin:24px 0 8px">Scan Log (${pickingLog.value.length} scans)</h3><table><thead><tr><th>#</th><th>Time</th><th>Item</th><th>Barcode</th><th style="text-align:right">Qty</th><th>Details</th></tr></thead><tbody>${logRows}</tbody></table>` : '') +
     `</body></html>`;
   const w = window.open('', '_blank');
@@ -1310,6 +1402,8 @@ const resetForNextOrder = async () => {
   itemsToPick.value = [];
   pickedItems.value = [];
   barcodeMap.value = {};
+  originalItems.value = [];
+  originalTotalQty.value = 0;
   mrName.value = null;
   currentStep.value = 1;
   sourceWarehouse.value = '';
@@ -1329,6 +1423,7 @@ const resetForNextOrder = async () => {
   isPartialPick.value = false;
   showChangeWarehouse.value = false;
   showQtyOverride.value = false;
+  removeTarget.value = null;
   scanError.value = '';
   if (scanErrorTimer) clearTimeout(scanErrorTimer);
   const today = new Date();
