@@ -1,6 +1,11 @@
 frappe.listview_settings['Sales Invoice'] = frappe.listview_settings['Sales Invoice'] || {};
 
 frappe.listview_settings['Sales Invoice'].get_indicator = function (doc) {
+	// Return invoices always show gray "Return" regardless of outstanding/paid status
+	if (doc.is_return) {
+		return [__("Return"), "gray", "is_return,=,1"];
+	}
+
 	// Native-accurate color mapping with user requirements
 	const status_colors = {
 		"Paid": "green",
@@ -28,7 +33,7 @@ frappe.listview_settings['Sales Invoice'].get_indicator = function (doc) {
 if (!frappe.listview_settings['Sales Invoice'].add_fields) {
 	frappe.listview_settings['Sales Invoice'].add_fields = [];
 }
-["customer", "outstanding_amount", "grand_total", "status", "docstatus"].forEach(f => {
+["customer", "outstanding_amount", "grand_total", "status", "docstatus", "is_return"].forEach(f => {
 	if (!frappe.listview_settings['Sales Invoice'].add_fields.includes(f)) {
 		frappe.listview_settings['Sales Invoice'].add_fields.push(f);
 	}
