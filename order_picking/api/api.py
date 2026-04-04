@@ -125,8 +125,15 @@ def mark_invoice_as_ready(invoice_name, order_pick_id=None):
 		frappe.throw(_("Sales Invoice {0} not found").format(invoice_name))
 
 	# Update the field specifically on the database to bypass submit restrictions
-	frappe.db.set_value("Sales Invoice", invoice_name, "custom_ready_to_dispatch", 1)
-	frappe.db.set_value("Sales Invoice", invoice_name, "custom_order_ready_to_dispatch", 1)
+	# using update_modified=False to prevent status recalculations
+	frappe.db.set_value(
+		"Sales Invoice", invoice_name, 
+		{
+			"custom_ready_to_dispatch": 1,
+			"custom_order_ready_to_dispatch": 1
+		},
+		update_modified=False
+	)
 	
 	# Attach to the active session
 	if order_pick_id:
