@@ -198,6 +198,7 @@
           <div class="relative">
             <label class="absolute -top-2 left-2 bg-white dark:bg-slate-800 px-1 text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider z-10">× Qty</label>
             <input v-model.number="manualQtyMultiplier" type="number" min="1" step="1"
+              @keydown.enter.prevent="handleItemScan"
               class="w-full py-4 px-3 text-lg text-center border-2 border-purple-300 dark:border-purple-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all shadow-sm font-black bg-purple-50 dark:bg-purple-900/30 dark:text-purple-200"
               :disabled="percentage === 100 || isLoading">
           </div>
@@ -285,8 +286,8 @@
       </div>
     </div>
 
-    <!-- Print Button (visible during picking when items exist) -->
-    <div v-if="currentStep === 1 && pickedItems.length > 0" class="flex justify-end mb-4">
+    <!-- Print Button (visible whenever picked items exist, across all steps) -->
+    <div v-if="pickedItems.length > 0" class="flex justify-end mb-4">
       <button @click="printPickList" class="text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 px-4 py-2 rounded-lg transition-colors shadow-sm ring-1 ring-inset ring-gray-200 dark:ring-slate-600 flex items-center gap-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
         Print Pick List
@@ -468,36 +469,87 @@
       </div>
     </div>
 
-    <!-- Qty Override Modal (F3) -->
+    <!-- Qty Override Modal (F4) — Scanner-friendly, large layout -->
     <Transition name="fade">
-      <div v-if="showQtyOverride" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="closeQtyOverride">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-600 p-6 w-full max-w-sm mx-4">
-          <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1 flex items-center gap-2">
-            <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
-            Override Quantity
-          </h3>
-          <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">
-            Item: <span class="font-bold text-gray-700 dark:text-slate-200">{{ qtyOverrideItem?.item_code }}</span>
-            <span v-if="qtyOverrideItem?.item_name" class="text-xs"> — {{ qtyOverrideItem.item_name }}</span>
-          </p>
-          <div class="flex items-center gap-3 mb-4">
-            <label class="text-sm font-bold text-gray-600 dark:text-slate-300 whitespace-nowrap">New Qty:</label>
+      <div v-if="showQtyOverride" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="closeQtyOverride">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border-2 border-purple-300 dark:border-purple-600 p-8 w-full max-w-lg mx-4">
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-black text-gray-800 dark:text-white flex items-center gap-3">
+              <div class="w-10 h-10 bg-purple-100 dark:bg-purple-900/50 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
+              </div>
+              Override Quantity
+            </h3>
+            <button @click="closeQtyOverride" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl font-bold px-2 transition-colors">&times;</button>
+          </div>
+
+          <!-- Step 1: Barcode / SKU Scanner -->
+          <div class="mb-5">
+            <label class="block text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Scan Item Barcode or Enter SKU</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+              </div>
+              <input type="text" v-model="qtyOverrideScanInput" ref="qtyOverrideScanRef"
+                @keyup.enter="resolveQtyOverrideItem"
+                class="w-full pl-14 pr-4 py-5 text-xl border-2 border-gray-300 dark:border-slate-600 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all shadow-sm font-bold bg-white dark:bg-slate-700 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500"
+                placeholder="Scan barcode or type item code...">
+            </div>
+          </div>
+
+          <!-- Resolved Item Info -->
+          <Transition name="fade">
+            <div v-if="qtyOverrideItem" class="mb-5 p-4 rounded-xl border-2 transition-all"
+              :class="qtyOverrideItem ? 'border-purple-200 bg-purple-50 dark:bg-purple-900/20 dark:border-purple-700' : 'border-gray-200 bg-gray-50'">
+              <div class="flex items-center gap-4 mb-3">
+                <div v-if="qtyOverrideItem.image" class="w-16 h-16 flex-shrink-0 bg-white rounded-lg p-1 border border-purple-200 overflow-hidden flex items-center justify-center shadow-sm">
+                  <img :src="qtyOverrideItem.image" class="max-w-full max-h-full object-contain" :alt="qtyOverrideItem.item_code">
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-lg font-black text-gray-800 dark:text-white truncate">{{ qtyOverrideItem.item_code }}</div>
+                  <div class="text-sm text-gray-500 dark:text-slate-400 truncate">{{ qtyOverrideItem.item_name || 'No Name' }}</div>
+                </div>
+              </div>
+              <div class="flex gap-4 text-sm">
+                <div class="bg-white dark:bg-slate-700 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-600">
+                  <span class="text-gray-400 font-medium">Picked: </span>
+                  <span class="font-black text-purple-600 dark:text-purple-400">{{ qtyOverrideItem.qty || 0 }}</span>
+                </div>
+                <div class="bg-white dark:bg-slate-700 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-600">
+                  <span class="text-gray-400 font-medium">Remaining: </span>
+                  <span class="font-black text-orange-600 dark:text-orange-400">{{ getItemRemainingQty(qtyOverrideItem.item_code) }}</span>
+                </div>
+                <div class="bg-white dark:bg-slate-700 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-600">
+                  <span class="text-gray-400 font-medium">UOM: </span>
+                  <span class="font-bold text-gray-600 dark:text-slate-300">{{ qtyOverrideItem.uom || 'Nos' }}</span>
+                </div>
+              </div>
+            </div>
+          </Transition>
+
+          <!-- Step 2: Qty Input (only after item resolved) -->
+          <div v-if="qtyOverrideItem" class="mb-6">
+            <label class="block text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">New Quantity</label>
             <input type="number" v-model.number="qtyOverrideValue" min="0" step="1" ref="qtyOverrideInputRef"
               @keydown.enter.prevent="applyQtyOverride" @keydown.escape.prevent="closeQtyOverride"
-              class="flex-1 border-2 border-purple-300 dark:border-purple-600 rounded-lg px-3 py-2.5 text-lg text-center font-black focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 bg-purple-50 dark:bg-purple-900/30 dark:text-purple-200">
-            <span class="text-sm text-gray-400 font-medium">{{ qtyOverrideItem?.uom || 'Nos' }}</span>
+              class="w-full border-3 border-purple-400 dark:border-purple-500 rounded-xl px-6 py-5 text-3xl text-center font-black focus:border-purple-600 focus:ring-4 focus:ring-purple-500/30 bg-purple-50 dark:bg-purple-900/30 dark:text-purple-200 shadow-inner transition-all"
+              placeholder="0">
           </div>
-          <div class="text-xs text-gray-400 mb-4">
-            Currently picked: <span class="font-bold">{{ qtyOverrideItem?.qty || 0 }}</span> &nbsp;|&nbsp;
-            Remaining in order: <span class="font-bold">{{ getItemRemainingQty(qtyOverrideItem?.item_code) }}</span>
+
+          <!-- Action buttons -->
+          <div v-if="qtyOverrideItem" class="flex gap-3">
+            <button @click="closeQtyOverride" class="flex-1 py-4 px-4 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-xl font-bold text-base hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
+              Cancel <span class="text-xs text-gray-400 ml-1 border border-gray-300 rounded px-1">Esc</span>
+            </button>
+            <button @click="applyQtyOverride" class="flex-1 py-4 px-4 bg-purple-600 text-white rounded-xl font-bold text-base hover:bg-purple-700 transition-colors shadow-lg">
+              Apply Override <span class="text-xs bg-black/20 px-1.5 rounded ml-1">Enter</span>
+            </button>
           </div>
-          <div class="flex gap-2">
-            <button @click="closeQtyOverride" class="flex-1 py-2.5 px-4 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-xl font-bold text-sm hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
-              Cancel <span class="text-[10px] text-gray-400 ml-1">Esc</span>
-            </button>
-            <button @click="applyQtyOverride" class="flex-1 py-2.5 px-4 bg-purple-600 text-white rounded-xl font-bold text-sm hover:bg-purple-700 transition-colors shadow-md">
-              Apply <span class="text-[10px] bg-black/20 px-1 rounded ml-1">Enter</span>
-            </button>
+
+          <!-- Hint when no item resolved yet -->
+          <div v-if="!qtyOverrideItem" class="text-center text-sm text-gray-400 dark:text-slate-500 mt-2">
+            <p>Scan a barcode or type an item code above, then press <span class="font-bold bg-gray-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-xs">Enter</span></p>
           </div>
         </div>
       </div>
@@ -614,11 +666,13 @@ const showCCDropdown = ref(false);
 const ccHighlight = ref(0);
 const ccDropdownContainer = ref(null);
 
-// Qty Override (F3) state
+// Qty Override (F4) state
 const showQtyOverride = ref(false);
 const qtyOverrideItem = ref(null);
 const qtyOverrideValue = ref(0);
 const qtyOverrideInputRef = ref(null);
+const qtyOverrideScanInput = ref('');
+const qtyOverrideScanRef = ref(null);
 
 // --- AJAX Warehouse Computed ---
 const filteredSourceWarehouses = computed(() => {
@@ -752,15 +806,63 @@ const getItemRemainingQty = (itemCode) => {
 };
 
 const openQtyOverride = () => {
-  if (pickedItems.value.length === 0) {
-    emit('alert', 'No picked items to override quantity for.', 'error');
+  // Open with scanner field focused — worker scans barcode first, then types qty
+  qtyOverrideItem.value = null;
+  qtyOverrideScanInput.value = '';
+  qtyOverrideValue.value = 0;
+  showQtyOverride.value = true;
+  nextTick(() => {
+    qtyOverrideScanRef.value?.focus();
+  });
+};
+
+const resolveQtyOverrideItem = () => {
+  const val = qtyOverrideScanInput.value.trim();
+  if (!val) return;
+
+  // Try to find in picked items by barcode map or item_code
+  let matchItemCode = null;
+  const bcEntry = barcodeMap.value[val];
+  if (bcEntry) {
+    matchItemCode = bcEntry.item_code;
+  } else {
+    // Direct item_code match in picked list
+    const found = pickedItems.value.find(i => i.item_code === val);
+    if (found) matchItemCode = found.item_code;
+    // Also check itemsToPick (item might not be picked yet but exists in order)
+    if (!matchItemCode) {
+      const foundInOrder = itemsToPick.value.find(i => i.item_code === val);
+      if (foundInOrder) matchItemCode = foundInOrder.item_code;
+    }
+  }
+
+  if (!matchItemCode) {
+    emit('alert', `Item not found for barcode/SKU: ${val}`, 'error');
+    qtyOverrideScanInput.value = '';
     return;
   }
-  // Default to last picked item
-  const lastPicked = pickedItems.value[pickedItems.value.length - 1];
-  qtyOverrideItem.value = { ...lastPicked };
-  qtyOverrideValue.value = lastPicked.qty;
-  showQtyOverride.value = true;
+
+  // Find in picked items
+  const pickedItem = pickedItems.value.find(i => i.item_code === matchItemCode);
+  if (pickedItem) {
+    qtyOverrideItem.value = { ...pickedItem };
+    qtyOverrideValue.value = pickedItem.qty;
+  } else {
+    // Item exists in order but not yet picked — show with qty 0
+    const orderItem = itemsToPick.value.find(i => i.item_code === matchItemCode);
+    qtyOverrideItem.value = {
+      item_code: matchItemCode,
+      item_name: orderItem?.item_name || '',
+      image: orderItem?.image || '',
+      uom: orderItem?.uom || 'Nos',
+      qty: 0,
+      source_warehouse: sourceWarehouse.value,
+      target_warehouse: targetWarehouse.value,
+    };
+    qtyOverrideValue.value = 0;
+  }
+
+  qtyOverrideScanInput.value = '';
   nextTick(() => {
     qtyOverrideInputRef.value?.focus();
     qtyOverrideInputRef.value?.select();
@@ -771,6 +873,7 @@ const closeQtyOverride = () => {
   showQtyOverride.value = false;
   qtyOverrideItem.value = null;
   qtyOverrideValue.value = 0;
+  qtyOverrideScanInput.value = '';
   nextTick(() => itemInputRef.value?.focus());
 };
 
@@ -779,37 +882,46 @@ const applyQtyOverride = () => {
   const itemCode = qtyOverrideItem.value.item_code;
   const newQty = Math.max(0, Math.floor(qtyOverrideValue.value || 0));
   const pickedIdx = pickedItems.value.findIndex(i => i.item_code === itemCode);
-  if (pickedIdx === -1) { closeQtyOverride(); return; }
-
-  const oldQty = pickedItems.value[pickedIdx].qty;
+  const oldQty = pickedIdx !== -1 ? pickedItems.value[pickedIdx].qty : 0;
   const diff = newQty - oldQty;
 
   // Adjust remaining in itemsToPick
   const toPickIdx = itemsToPick.value.findIndex(i => i.item_code === itemCode);
   if (toPickIdx !== -1) {
-    const maxAddable = itemsToPick.value[toPickIdx].qty; // how much is left
+    const maxAddable = itemsToPick.value[toPickIdx].qty;
     if (diff > 0 && diff > maxAddable) {
-      emit('alert', `Cannot add ${diff} — only ${maxAddable} remaining to pick.`, 'error');
+      emit('alert', `Over-pick! Trying to set ${newQty} but only ${maxAddable + oldQty} total available for ${itemCode}.`, 'error');
       return;
     }
     itemsToPick.value[toPickIdx].qty -= diff;
   } else if (diff > 0) {
-    emit('alert', 'Cannot increase — item already fully picked.', 'error');
+    emit('alert', `Over-pick! Item ${itemCode} already fully picked — cannot increase.`, 'error');
     return;
   }
 
-  if (newQty <= 0) {
-    // Remove from picked, return qty to toPick
+  if (newQty <= 0 && pickedIdx !== -1) {
+    // Remove from picked
     pickedItems.value.splice(pickedIdx, 1);
-  } else {
+  } else if (newQty > 0 && pickedIdx !== -1) {
     pickedItems.value[pickedIdx].qty = newQty;
+  } else if (newQty > 0 && pickedIdx === -1) {
+    // Item not yet in picked list — add it
+    pickedItems.value.push({
+      item_code: itemCode,
+      item_name: qtyOverrideItem.value.item_name,
+      image: qtyOverrideItem.value.image,
+      uom: qtyOverrideItem.value.uom,
+      qty: newQty,
+      source_warehouse: qtyOverrideItem.value.source_warehouse || sourceWarehouse.value,
+      target_warehouse: qtyOverrideItem.value.target_warehouse || targetWarehouse.value,
+    });
   }
 
   // Log the override
   pickingLog.value.push({
     time: new Date().toLocaleTimeString(),
     item_code: itemCode,
-    barcode: '(F3 override)',
+    barcode: '(F4 override)',
     qty: newQty,
     uom_factor: `was ${oldQty}`,
     multiplier: '→' + newQty
@@ -821,10 +933,10 @@ const applyQtyOverride = () => {
 
 // B2B keyboard handler
 const handleB2BKeydown = (e) => {
-  // F3: Qty Override
-  if (e.key === 'F3') {
+  // F4: Qty Override (scanner-friendly popup)
+  if (e.key === 'F4') {
     e.preventDefault();
-    if (currentStep.value === 1 && warehouseConfirmed.value && pickedItems.value.length > 0) {
+    if (currentStep.value === 1 && warehouseConfirmed.value) {
       openQtyOverride();
     }
   }
@@ -1007,11 +1119,17 @@ const handleItemScan = () => {
     return;
   }
 
-  // Total qty = UOM factor × manual multiplier, capped at remaining
+  // Total qty = UOM factor × manual multiplier — reject if over remaining
   const scanQty = uomFactor * multiplier;
   const remaining = itemsToPick.value[foundIndex].qty;
-  const actualQty = Math.min(scanQty, remaining);
 
+  if (scanQty > remaining) {
+    emit('alert', `Over-pick! Trying to add ${scanQty} but only ${remaining} remaining for ${matchItemCode}. Adjust the × Qty multiplier or use F4 to override.`, 'error');
+    itemScan.value = '';
+    return;
+  }
+
+  const actualQty = scanQty;
   itemsToPick.value[foundIndex].qty -= actualQty;
 
   // Use a composite key: item_code + source + target warehouse for multi-WH support
@@ -1044,8 +1162,7 @@ const handleItemScan = () => {
   });
 
   lastScanInfo.value = `Scanned ${matchItemCode} × ${actualQty}`
-    + (uomFactor > 1 ? ` (UOM: ${uomFactor} × ${multiplier})` : (multiplier > 1 ? ` (× ${multiplier})` : ''))
-    + (actualQty < scanQty ? ` — capped at remaining` : '');
+    + (uomFactor > 1 ? ` (UOM: ${uomFactor} × ${multiplier})` : (multiplier > 1 ? ` (× ${multiplier})` : ''));
 
   flashSuccess.value = true;
   setTimeout(() => flashSuccess.value = false, 200);

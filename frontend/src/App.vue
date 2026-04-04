@@ -454,8 +454,8 @@ const handleKeydown = (e) => {
             markReady();
         }
     }
-    // F4: Submit Order Pick / Yes, Submit in Modal
-    else if (e.key === 'F4') {
+    // F4: Submit Order Pick / Yes, Submit in Modal (Retail tab only)
+    else if (e.key === 'F4' && activeTab.value === 'retail') {
         e.preventDefault();
         if (showSubmitConfirm.value) {
             submitOrderPick();
