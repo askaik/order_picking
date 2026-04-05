@@ -16,7 +16,9 @@
         "pick_date",
         "is_partial",
         "section_items",
-        "items"
+        "items",
+        "section_log",
+        "log"
     ],
     "fields": [
         {
@@ -90,6 +92,18 @@
             "fieldtype": "Table",
             "label": "Items",
             "options": "B2B Pick Report Item"
+        },
+        {
+            "fieldname": "section_log",
+            "fieldtype": "Section Break",
+            "label": "Scan Log",
+            "collapsible": 1
+        },
+        {
+            "fieldname": "log",
+            "fieldtype": "Table",
+            "label": "Scan Log",
+            "options": "B2B Pick Report Log"
         }
     ],
     "links": [],

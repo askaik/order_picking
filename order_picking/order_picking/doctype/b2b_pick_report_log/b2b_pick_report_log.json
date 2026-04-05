@@ -1,0 +1,63 @@
+{
+    "actions": [],
+    "creation": "2026-04-05 00:00:00.000000",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "time",
+        "item_code",
+        "barcode",
+        "qty",
+        "multiplier",
+        "uom_factor"
+    ],
+    "fields": [
+        {
+            "fieldname": "time",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "Time"
+        },
+        {
+            "fieldname": "item_code",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "Item Code"
+        },
+        {
+            "fieldname": "barcode",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "Barcode"
+        },
+        {
+            "fieldname": "qty",
+            "fieldtype": "Float",
+            "in_list_view": 1,
+            "label": "Qty"
+        },
+        {
+            "fieldname": "multiplier",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "Multiplier"
+        },
+        {
+            "fieldname": "uom_factor",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "UOM Factor"
+        }
+    ],
+    "index_web_pages_for_search": 1,
+    "istable": 1,
+    "links": [],
+    "modified": "2026-04-05 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Order Picking",
+    "name": "B2B Pick Report Log",
+    "owner": "Administrator",
+    "permissions": [],
+    "sort_field": "modified",
+    "sort_order": "ASC"
+}

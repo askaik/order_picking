@@ -1363,15 +1363,22 @@ const handleItemScan = () => {
 const printPickList = () => {
   const orderQtyMap = {};
   originalItems.value.forEach(i => { orderQtyMap[i.item_code] = i.qty; });
+  // Build item_code → barcodes reverse map
+  const itemBarcodes = {};
+  Object.entries(barcodeMap.value).forEach(([bc, v]) => {
+    if (!itemBarcodes[v.item_code]) itemBarcodes[v.item_code] = [];
+    if (!itemBarcodes[v.item_code].includes(bc)) itemBarcodes[v.item_code].push(bc);
+  });
   const rows = pickedItems.value.map((item, idx) => {
     const orderQty = orderQtyMap[item.item_code] || 0;
     const overPick = item.qty > orderQty;
+    const barcodes = (itemBarcodes[item.item_code] || []).join(', ');
     return `<tr>
       <td style="padding:6px 12px;border:1px solid #ddd">${idx+1}</td>
-      <td style="padding:6px 12px;border:1px solid #ddd;font-weight:bold">${item.item_code}</td>
+      <td style="padding:6px 12px;border:1px solid #ddd;font-weight:bold">${item.item_code}${barcodes ? `<br><span style="font-weight:normal;font-size:10px;color:#888;font-family:monospace">${barcodes}</span>` : ''}</td>
       <td style="padding:6px 12px;border:1px solid #ddd">${item.item_name||''}</td>
       <td style="padding:6px 12px;border:1px solid #ddd;text-align:right;color:#666">${orderQty}</td>
-      <td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:bold;color:${overPick?'#dc2626':'#16a34a'}">${item.qty}${overPick?' ⚠':'</td>'}</td>
+      <td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:bold;color:${overPick?'#dc2626':'#16a34a'}">${item.qty}${overPick?' ⚠':''}</td>
       <td style="padding:6px 12px;border:1px solid #ddd">${item.uom||'Nos'}</td>
       <td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.source_warehouse||''} → ${item.target_warehouse||''}</td>
     </tr>`;
@@ -1435,7 +1442,8 @@ const createSE = async () => {
       cost_center: costCenter.value,
       purpose_of_transfer: purposeOfTransfer.value,
       is_partial: isPartialPick.value ? 1 : 0,
-      original_items: JSON.stringify(originalItems.value)
+      original_items: JSON.stringify(originalItems.value),
+      picking_log: JSON.stringify(pickingLog.value)
     });
     const statusLabel = isPartialPick.value ? 'Consignment Partially Delivered' : 'Consignment Delivered';
     emit('alert', `Stock Entry ${data.se_name} created & submitted! Status: ${statusLabel}`, 'success');
@@ -1467,10 +1475,16 @@ const printCompletedSummary = () => {
   const c = completedSE.value;
   const orderQtyMap = {};
   originalItems.value.forEach(i => { orderQtyMap[i.item_code] = (orderQtyMap[i.item_code] || 0) + i.qty; });
+  const itemBarcodes = {};
+  Object.entries(barcodeMap.value).forEach(([bc, v]) => {
+    if (!itemBarcodes[v.item_code]) itemBarcodes[v.item_code] = [];
+    if (!itemBarcodes[v.item_code].includes(bc)) itemBarcodes[v.item_code].push(bc);
+  });
   const rows = c.items.map((item, idx) => {
     const orderQty = orderQtyMap[item.item_code] || 0;
     const overPick = item.qty > orderQty;
-    return `<tr><td style="padding:6px 12px;border:1px solid #ddd">${idx+1}</td><td style="padding:6px 12px;border:1px solid #ddd;font-weight:bold">${item.item_code}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.item_name||''}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right">${orderQty}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:bold;color:${overPick?'#dc2626':'#16a34a'}">${item.qty}${overPick?' ⚠':''}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.uom||'Nos'}</td><td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.from_warehouse||''}</td><td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.to_warehouse||''}</td></tr>`;
+    const barcodes = (itemBarcodes[item.item_code] || []).join(', ');
+    return `<tr><td style="padding:6px 12px;border:1px solid #ddd">${idx+1}</td><td style="padding:6px 12px;border:1px solid #ddd;font-weight:bold">${item.item_code}${barcodes ? `<br><span style="font-weight:normal;font-size:10px;color:#888;font-family:monospace">${barcodes}</span>` : ''}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.item_name||''}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right">${orderQty}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:bold;color:${overPick?'#dc2626':'#16a34a'}">${item.qty}${overPick?' ⚠':''}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.uom||'Nos'}</td><td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.from_warehouse||''}</td><td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.to_warehouse||''}</td></tr>`;
   }).join('');
   const logRows = pickingLog.value.map((log, idx) =>
     `<tr><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">${idx+1}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">${log.time}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;font-weight:bold">${log.item_code}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;font-family:monospace">${log.barcode}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;text-align:right;font-weight:bold">${log.qty}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">&times;${log.multiplier} (${log.uom_factor})</td></tr>`

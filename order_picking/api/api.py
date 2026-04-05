@@ -325,6 +325,24 @@ def get_stock_for_items(item_codes, warehouse):
 
 
 @frappe.whitelist()
+def get_item_barcodes(item_codes):
+	"""Return all barcodes for a list of item codes. item_codes is a JSON string list."""
+	import json as _json
+	if isinstance(item_codes, str):
+		item_codes = _json.loads(item_codes)
+	result = {}
+	for item_code in item_codes:
+		rows = frappe.db.get_all(
+			"Item Barcode",
+			filters={"parent": item_code},
+			fields=["barcode"],
+			order_by="idx asc"
+		)
+		result[item_code] = [r.barcode for r in rows if r.barcode]
+	return result
+
+
+@frappe.whitelist()
 def get_warehouses_and_cost_centers():
 	"""Return active warehouses and cost centers for dropdown selection."""
 	warehouses = frappe.get_all(
@@ -398,7 +416,7 @@ def submit_b2b_material_request(mr_name):
 
 
 @frappe.whitelist()
-def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer="", is_partial=0, original_items=None):
+def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer="", is_partial=0, original_items=None, picking_log=None):
 	"""
 	Create and submit a Stock Entry (Material Transfer) from a submitted Material Request.
 	Sets custom_cost_center on header and cost_center on each detail row.
@@ -521,6 +539,21 @@ def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer="", is_part
 				"source_warehouse": item.from_warehouse,
 				"target_warehouse": item.warehouse,
 			})
+		# Save scan log entries
+		if picking_log:
+			try:
+				log_entries = _json.loads(picking_log) if isinstance(picking_log, str) else picking_log
+				for entry in log_entries:
+					report.append("log", {
+						"time": entry.get("time", ""),
+						"item_code": entry.get("item_code", ""),
+						"barcode": entry.get("barcode", ""),
+						"qty": entry.get("qty", 0),
+						"multiplier": str(entry.get("multiplier", "")),
+						"uom_factor": entry.get("uom_factor", ""),
+					})
+			except Exception:
+				pass
 		report.insert(ignore_permissions=True)
 		frappe.db.commit()
 	except Exception as e:
