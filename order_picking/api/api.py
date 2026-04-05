@@ -398,7 +398,7 @@ def submit_b2b_material_request(mr_name):
 
 
 @frappe.whitelist()
-def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer="", is_partial=0):
+def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer="", is_partial=0, original_items=None):
 	"""
 	Create and submit a Stock Entry (Material Transfer) from a submitted Material Request.
 	Sets custom_cost_center on header and cost_center on each detail row.
@@ -476,17 +476,55 @@ def create_b2b_stock_entry(mr_name, cost_center, purpose_of_transfer="", is_part
 
 	frappe.db.commit()
 
-	# Return item details for the completion summary / print
+	# Build items summary for return and pick report
+	import json as _json
+	order_qty_map = {}
+	if original_items:
+		try:
+			for oi in _json.loads(original_items):
+				code = oi.get("item_code")
+				if code:
+					order_qty_map[code] = order_qty_map.get(code, 0) + (oi.get("qty") or 0)
+		except Exception:
+			pass
+
 	items_summary = []
 	for item in mr_doc.items:
+		item_name = frappe.db.get_value("Item", item.item_code, "item_name") or item.item_code
 		items_summary.append({
 			"item_code": item.item_code,
-			"item_name": frappe.db.get_value("Item", item.item_code, "item_name") or item.item_code,
+			"item_name": item_name,
 			"qty": item.qty,
 			"uom": item.uom,
 			"from_warehouse": item.from_warehouse,
 			"to_warehouse": item.warehouse,
 		})
+
+	# Save a B2B Pick Report document for later reference
+	try:
+		report = frappe.new_doc("B2B Pick Report")
+		report.sales_order = so_name or ""
+		report.customer_name = customer_name
+		report.material_request = mr_doc.name
+		report.stock_entry = se.name
+		report.picked_by = frappe.session.user
+		report.pick_date = frappe.utils.now()
+		report.is_partial = int(is_partial or 0)
+		for item in mr_doc.items:
+			item_name = frappe.db.get_value("Item", item.item_code, "item_name") or item.item_code
+			report.append("items", {
+				"item_code": item.item_code,
+				"item_name": item_name,
+				"order_qty": order_qty_map.get(item.item_code, 0),
+				"picked_qty": item.qty,
+				"uom": item.uom,
+				"source_warehouse": item.from_warehouse,
+				"target_warehouse": item.warehouse,
+			})
+		report.insert(ignore_permissions=True)
+		frappe.db.commit()
+	except Exception as e:
+		frappe.log_error(f"Could not save B2B Pick Report for {so_name}: {str(e)}", "B2B Pick Report Save")
 
 	return {
 		"se_name": se.name,

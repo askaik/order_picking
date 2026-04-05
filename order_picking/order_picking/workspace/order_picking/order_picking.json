@@ -2,7 +2,7 @@
     "app": "order_picking",
     "category": "Modules",
     "charts": [],
-    "content": "[{\"id\":\"hdr-1\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Order Picking Dashboard</b></span>\",\"col\":12}},{\"id\":\"shortcut-1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Launch Scanner\",\"col\":3}},{\"id\":\"shortcut-2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Invoice\",\"col\":3}},{\"id\":\"shortcut-3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Order Pick\",\"col\":3}},{\"id\":\"shortcut-4\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Dispatch Orders\",\"col\":3}},{\"id\":\"LNKBRK-1\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Records</b></span>\",\"col\":12}},{\"id\":\"CARD-1\",\"type\":\"card\",\"data\":{\"card_name\":\"Operations\",\"col\":12}}]",
+    "content": "[{\"id\":\"hdr-1\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Order Picking Dashboard</b></span>\",\"col\":12}},{\"id\":\"shortcut-1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Launch Scanner\",\"col\":3}},{\"id\":\"shortcut-2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Invoice\",\"col\":3}},{\"id\":\"shortcut-3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Order Pick\",\"col\":3}},{\"id\":\"shortcut-4\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Dispatch Orders\",\"col\":3}},{\"id\":\"shortcut-5\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"B2B Pick Report\",\"col\":3}},{\"id\":\"LNKBRK-1\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Records</b></span>\",\"col\":12}},{\"id\":\"CARD-1\",\"type\":\"card\",\"data\":{\"card_name\":\"Operations\",\"col\":12}}]",
     "creation": "2024-02-23 00:00:00.000000",
     "custom_blocks": [],
     "docstatus": 0,
@@ -65,6 +65,17 @@
             "link_type": "DocType",
             "onboard": 0,
             "type": "Link"
+        },
+        {
+            "dependencies": "",
+            "hidden": 0,
+            "is_query_report": 0,
+            "label": "B2B Pick Report",
+            "link_count": 0,
+            "link_to": "B2B Pick Report",
+            "link_type": "DocType",
+            "onboard": 0,
+            "type": "Link"
         }
     ],
     "modified": "2030-01-01 00:00:00.000000",
@@ -105,6 +116,13 @@
             "link_to": "Dispatch Orders",
             "type": "DocType",
             "color": "Purple",
+            "doc_view": "List"
+        },
+        {
+            "label": "B2B Pick Report",
+            "link_to": "B2B Pick Report",
+            "type": "DocType",
+            "color": "Blue",
             "doc_view": "List"
         }
     ],

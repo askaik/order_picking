@@ -1,0 +1,142 @@
+{
+    "actions": [],
+    "autoname": "naming_series:",
+    "creation": "2026-04-05 00:00:00.000000",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "naming_series",
+        "sales_order",
+        "customer_name",
+        "col_break_1",
+        "material_request",
+        "stock_entry",
+        "col_break_2",
+        "picked_by",
+        "pick_date",
+        "is_partial",
+        "section_items",
+        "items"
+    ],
+    "fields": [
+        {
+            "fieldname": "naming_series",
+            "fieldtype": "Select",
+            "label": "Naming Series",
+            "options": "BPR-.YYYY.-"
+        },
+        {
+            "fieldname": "sales_order",
+            "fieldtype": "Link",
+            "in_list_view": 1,
+            "label": "Sales Order",
+            "options": "Sales Order"
+        },
+        {
+            "fieldname": "customer_name",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "Customer",
+            "read_only": 1
+        },
+        {
+            "fieldname": "col_break_1",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "material_request",
+            "fieldtype": "Link",
+            "in_list_view": 1,
+            "label": "Material Request",
+            "options": "Material Request"
+        },
+        {
+            "fieldname": "stock_entry",
+            "fieldtype": "Link",
+            "in_list_view": 1,
+            "label": "Stock Entry",
+            "options": "Stock Entry"
+        },
+        {
+            "fieldname": "col_break_2",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "picked_by",
+            "fieldtype": "Link",
+            "in_list_view": 1,
+            "label": "Picked By",
+            "options": "User"
+        },
+        {
+            "fieldname": "pick_date",
+            "fieldtype": "Datetime",
+            "in_list_view": 1,
+            "label": "Pick Date"
+        },
+        {
+            "default": "0",
+            "fieldname": "is_partial",
+            "fieldtype": "Check",
+            "label": "Partial Pick"
+        },
+        {
+            "fieldname": "section_items",
+            "fieldtype": "Section Break",
+            "label": "Items"
+        },
+        {
+            "fieldname": "items",
+            "fieldtype": "Table",
+            "label": "Items",
+            "options": "B2B Pick Report Item"
+        }
+    ],
+    "links": [],
+    "modified": "2026-04-05 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Order Picking",
+    "name": "B2B Pick Report",
+    "naming_rule": "By \"Naming Series\" field",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Stock User",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "Stock Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "pick_date",
+    "sort_order": "DESC",
+    "title_field": "sales_order",
+    "track_changes": 1
+}

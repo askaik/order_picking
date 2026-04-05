@@ -1339,7 +1339,8 @@ const createSE = async () => {
       mr_name: mrName.value,
       cost_center: costCenter.value,
       purpose_of_transfer: purposeOfTransfer.value,
-      is_partial: isPartialPick.value ? 1 : 0
+      is_partial: isPartialPick.value ? 1 : 0,
+      original_items: JSON.stringify(originalItems.value)
     });
     const statusLabel = isPartialPick.value ? 'Consignment Partially Delivered' : 'Consignment Delivered';
     emit('alert', `Stock Entry ${data.se_name} created & submitted! Status: ${statusLabel}`, 'success');
