@@ -965,7 +965,19 @@ const applyQtyOverride = () => {
   const oldQty = pickedIdx !== -1 ? pickedItems.value[pickedIdx].qty : 0;
   const diff = newQty - oldQty;
 
-  // Override bypasses qty restrictions — clamp remaining at 0, never go negative
+  // Stock availability check — F9 override cannot exceed physical stock
+  if (stockLevels.value[itemCode] !== undefined) {
+    const alreadyPickedFromWH = pickedItems.value
+      .filter(i => i.item_code === itemCode && i.source_warehouse === (qtyOverrideItem.value?.source_warehouse || sourceWarehouse.value))
+      .reduce((a, i) => a + i.qty, 0);
+    const availableStock = stockLevels.value[itemCode] - (alreadyPickedFromWH - oldQty);
+    if (newQty > availableStock) {
+      emit('alert', `Insufficient stock! Only ${availableStock} available in source warehouse for ${itemCode}.`, 'error');
+      return;
+    }
+  }
+
+  // Clamp remaining at 0, never go negative
   const toPickIdx = itemsToPick.value.findIndex(i => i.item_code === itemCode);
   if (toPickIdx !== -1) {
     itemsToPick.value[toPickIdx].qty = Math.max(0, itemsToPick.value[toPickIdx].qty - diff);
@@ -1214,6 +1226,21 @@ const handleItemScan = () => {
     scanErrorTimer = setTimeout(() => { scanError.value = ''; }, 5000);
     itemScan.value = '';
     return;
+  }
+
+  // Stock availability check — cannot pick more than physical stock in source WH
+  if (stockLevels.value[matchItemCode] !== undefined) {
+    const alreadyPickedFromWH = pickedItems.value
+      .filter(i => i.item_code === matchItemCode && i.source_warehouse === sourceWarehouse.value)
+      .reduce((a, i) => a + i.qty, 0);
+    const availableStock = stockLevels.value[matchItemCode] - alreadyPickedFromWH;
+    if (scanQty > availableStock) {
+      scanError.value = `Insufficient stock! Only ${availableStock} available in ${sourceWarehouse.value} for ${matchItemCode}.`;
+      if (scanErrorTimer) clearTimeout(scanErrorTimer);
+      scanErrorTimer = setTimeout(() => { scanError.value = ''; }, 5000);
+      itemScan.value = '';
+      return;
+    }
   }
   scanError.value = '';
 
