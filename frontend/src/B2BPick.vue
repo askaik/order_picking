@@ -513,6 +513,31 @@
       </div>
     </Transition>
 
+    <!-- Close B2B Pick Confirmation Modal -->
+    <Transition name="fade">
+      <div v-if="showCloseConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showCloseConfirm = false">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border-2 border-orange-300 dark:border-orange-700 p-7 w-full max-w-sm mx-4">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 bg-orange-100 dark:bg-orange-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            </div>
+            <h3 class="text-lg font-black text-gray-800 dark:text-white">Close B2B Pick?</h3>
+          </div>
+          <p class="text-sm text-gray-600 dark:text-slate-300 mb-5">
+            You have <span class="font-black text-orange-600">{{ pickedItems.length }} item(s)</span> already picked. Closing will discard all progress for this order.
+          </p>
+          <div class="flex gap-3">
+            <button @click="showCloseConfirm = false" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-xl font-bold text-sm hover:bg-gray-200 transition-colors">
+              Keep Picking
+            </button>
+            <button @click="$emit('close'); showCloseConfirm = false" class="flex-1 py-3 bg-orange-600 text-white rounded-xl font-bold text-sm hover:bg-orange-700 transition-colors shadow-md">
+              Yes, Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Qty Override Modal (F9) — Scanner-friendly, large layout -->
     <Transition name="fade">
       <div v-if="showQtyOverride" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="closeQtyOverride">
@@ -580,6 +605,15 @@
               class="w-full border-3 border-purple-400 dark:border-purple-500 rounded-xl px-6 py-5 text-3xl text-center font-black focus:border-purple-600 focus:ring-4 focus:ring-purple-500/30 bg-purple-50 dark:bg-purple-900/30 dark:text-purple-200 shadow-inner transition-all"
               placeholder="0">
           </div>
+
+          <!-- Stock error inside popup -->
+          <Transition name="fade">
+            <div v-if="qtyOverrideError" class="flex items-center gap-2 bg-red-600 text-white px-4 py-3 rounded-xl font-bold text-sm mb-4">
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+              <span>{{ qtyOverrideError }}</span>
+              <button @click="qtyOverrideError = ''" class="ml-auto text-white/80 hover:text-white text-lg">&times;</button>
+            </div>
+          </Transition>
 
           <!-- Action buttons -->
           <div v-if="qtyOverrideItem" class="flex gap-3">
@@ -753,6 +787,10 @@ const qtyOverrideValue = ref(0);
 const qtyOverrideInputRef = ref(null);
 const qtyOverrideScanInput = ref('');
 const qtyOverrideScanRef = ref(null);
+const qtyOverrideError = ref('');
+
+// Close B2B pick confirmation
+const showCloseConfirm = ref(false);
 
 // --- AJAX Warehouse Computed ---
 const filteredSourceWarehouses = computed(() => {
@@ -954,6 +992,7 @@ const closeQtyOverride = () => {
   qtyOverrideItem.value = null;
   qtyOverrideValue.value = 0;
   qtyOverrideScanInput.value = '';
+  qtyOverrideError.value = '';
   nextTick(() => itemInputRef.value?.focus());
 };
 
@@ -972,10 +1011,11 @@ const applyQtyOverride = () => {
       .reduce((a, i) => a + i.qty, 0);
     const availableStock = stockLevels.value[itemCode] - (alreadyPickedFromWH - oldQty);
     if (newQty > availableStock) {
-      emit('alert', `Insufficient stock! Only ${availableStock} available in source warehouse for ${itemCode}.`, 'error');
+      qtyOverrideError.value = `Insufficient stock! Only ${availableStock} available in ${qtyOverrideItem.value?.source_warehouse || sourceWarehouse.value}.`;
       return;
     }
   }
+  qtyOverrideError.value = '';
 
   // Clamp remaining at 0, never go negative
   const toPickIdx = itemsToPick.value.findIndex(i => i.item_code === itemCode);
@@ -1017,6 +1057,34 @@ const applyQtyOverride = () => {
 
 // B2B keyboard handler
 const handleB2BKeydown = (e) => {
+  // Escape key handling — priority order: override popup > remove modal > close confirmation > warn if picking
+  if (e.key === 'Escape') {
+    if (showQtyOverride.value) {
+      e.preventDefault();
+      closeQtyOverride();
+      return;
+    }
+    if (removeTarget.value) {
+      e.preventDefault();
+      removeTarget.value = null;
+      nextTick(() => itemInputRef.value?.focus());
+      return;
+    }
+    if (showCloseConfirm.value) {
+      e.preventDefault();
+      showCloseConfirm.value = false;
+      return;
+    }
+    // If picking is in progress, show confirmation before closing
+    if (currentStep.value === 1 && pickedItems.value.length > 0) {
+      e.preventDefault();
+      showCloseConfirm.value = true;
+      return;
+    }
+    // Otherwise let the default Esc propagate (close B2B pick normally)
+    return;
+  }
+
   // Ctrl+Z: Remove last picked item (undo)
   if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
     if (currentStep.value === 1 && pickedItems.value.length > 0 && !showQtyOverride.value && !removeTarget.value) {
