@@ -43,5 +43,6 @@ website_route_rules = [
 after_migrate = "order_picking.setup.after_migrate"
 
 fixtures = [
-	{"dt": "Workspace", "filters": [["name", "=", "Order Picking"]]}
+	{"dt": "Workspace", "filters": [["name", "=", "Order Picking"]]},
+	{"dt": "Print Format", "filters": [["doc_type", "=", "B2B Pick Report"]]}
 ]
