@@ -139,20 +139,28 @@ ${logRows ? `<h3>Scan Log (${(doc.log || []).length} scans)</h3>
 
 			let totalOrderQty = 0, totalPickedQty = 0, grandTotal = 0;
 
+			// Helper: render one barcode SVG element
+			const bcSvg = (value) => value
+				? `<svg class="bc" jsbarcode-value="${value}" jsbarcode-format="CODE128" jsbarcode-width="1.2" jsbarcode-height="28" jsbarcode-displayvalue="false" jsbarcode-margin="0" style="display:block;max-width:120px"></svg>`
+				: '';
+
 			const rows = so.items.map((item, idx) => {
-				const barcodes = (item.barcodes || []).join(', ');
+				const barcodes = item.barcodes || [];
 				const picked = pickedMap[item.item_code] || 0;
 				const amount = (item.rate || 0) * picked;
 				totalOrderQty += item.qty || 0;
 				totalPickedQty += picked;
 				grandTotal += amount;
 
+				const skuCell = `<strong style="font-size:12px">${item.item_code}</strong>`
+					+ barcodes.map(bc =>
+						`<br><span style="font-family:monospace;font-size:10px;color:#888">${bc}</span>`
+						+ bcSvg(bc)
+					).join('');
+
 				return `<tr>
 					<td style="${S.td}">${idx + 1}</td>
-					<td style="${S.td}">
-						<strong style="font-size:12px">${item.item_code}</strong>
-						${barcodes ? `<br><span style="font-family:monospace;font-size:10px;color:#999">${barcodes}</span>` : ''}
-					</td>
+					<td style="${S.td}">${skuCell}</td>
 					<td style="${S.td}">${item.item_name || ''}</td>
 					<td style="${S.td}${S.num}">${item.qty}</td>
 					<td style="${S.td}${S.num}${picked < item.qty ? 'color:#dc2626;' : 'color:#16a34a;'}font-weight:bold">${picked}</td>
@@ -186,6 +194,7 @@ ${logRows ? `<h3>Scan Log (${(doc.log || []).length} scans)</h3>
   .total-row td { font-weight: bold; font-size: 13px; border-top: 2px solid #1a1a2e; }
   .footer { text-align: center; margin-top: 40px; padding-top: 14px; border-top: 1px solid #ddd; font-size: 11px; color: #666; line-height: 1.7; }
   .footer strong { font-size: 13px; color: #1a1a2e; display: block; margin-bottom: 2px; }
+  svg.bc { display: block; max-width: 130px; margin-top: 3px; }
 </style>
 </head><body>
 
@@ -201,6 +210,7 @@ ${logRows ? `<h3>Scan Log (${(doc.log || []).length} scans)</h3>
   <div>
     <div class="lbl">Sales Order</div>
     <div class="val">${so.so_name}</div>
+    <svg class="bc" jsbarcode-value="${so.so_name}" jsbarcode-format="CODE128" jsbarcode-width="1.2" jsbarcode-height="28" jsbarcode-displayvalue="false" jsbarcode-margin="0"></svg>
   </div>
   <div>
     <div class="lbl">Address</div>
@@ -260,8 +270,23 @@ ${logRows ? `<h3>Scan Log (${(doc.log || []).length} scans)</h3>
 			const w = window.open('', '_blank');
 			w.document.write(html);
 			w.document.close();
-			w.focus();
-			w.print();
+
+			// Load JsBarcode, render all SVG barcodes, then print
+			const script = w.document.createElement('script');
+			script.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js';
+			script.onload = () => {
+				try {
+					w.JsBarcode('.bc');
+				} catch(e) {}
+				w.focus();
+				w.print();
+			};
+			script.onerror = () => {
+				// CDN failed — print anyway without barcodes
+				w.focus();
+				w.print();
+			};
+			w.document.head.appendChild(script);
 		};
 	}
 });
