@@ -359,19 +359,25 @@ def get_sales_order_print_data(so_name):
 		except Exception:
 			pass
 
-	from frappe.utils.barcode import get_barcode as _get_barcode
-
 	def safe_barcode(value):
-		"""Return inline SVG for a barcode value, or empty string on failure."""
+		"""Return inline SVG for a barcode value using python-barcode, or empty string on failure."""
 		if not value:
 			return ""
 		try:
-			svg = _get_barcode(value)
-			# Strip XML declaration if present so it embeds cleanly in HTML
-			svg = svg.strip()
-			if svg.startswith("<?xml"):
+			import barcode as _barcode
+			from barcode.writer import SVGWriter
+			import io
+			code = _barcode.get("code128", str(value), writer=SVGWriter())
+			buf = io.BytesIO()
+			code.write(buf, options={
+				"write_text": False,
+				"module_height": 8.0,
+				"module_width": 0.25,
+				"quiet_zone": 1.0,
+			})
+			svg = buf.getvalue().decode("utf-8").strip()
+			if "<?xml" in svg:
 				svg = svg[svg.index("<svg"):]
-			# Force compact size via inline style on the root <svg> tag
 			svg = svg.replace("<svg ", '<svg style="display:block;width:130px;height:36px;margin-top:2px" ', 1)
 			return svg
 		except Exception:
