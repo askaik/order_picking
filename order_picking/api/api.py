@@ -359,6 +359,24 @@ def get_sales_order_print_data(so_name):
 		except Exception:
 			pass
 
+	from frappe.utils.barcode import get_barcode as _get_barcode
+
+	def safe_barcode(value):
+		"""Return inline SVG for a barcode value, or empty string on failure."""
+		if not value:
+			return ""
+		try:
+			svg = _get_barcode(value)
+			# Strip XML declaration if present so it embeds cleanly in HTML
+			svg = svg.strip()
+			if svg.startswith("<?xml"):
+				svg = svg[svg.index("<svg"):]
+			# Force compact size via inline style on the root <svg> tag
+			svg = svg.replace("<svg ", '<svg style="display:block;width:130px;height:36px;margin-top:2px" ', 1)
+			return svg
+		except Exception:
+			return ""
+
 	items = []
 	for item in so.items:
 		barcodes = frappe.db.get_all(
@@ -367,10 +385,12 @@ def get_sales_order_print_data(so_name):
 			fields=["barcode"],
 			order_by="idx asc"
 		)
+		bc_list = [b.barcode for b in barcodes if b.barcode]
 		items.append({
 			"item_code": item.item_code,
 			"item_name": item.item_name or "",
-			"barcodes": [b.barcode for b in barcodes if b.barcode],
+			"barcodes": bc_list,
+			"barcode_svgs": [safe_barcode(bc) for bc in bc_list],
 			"qty": item.qty,
 			"uom": item.uom or "Nos",
 			"rate": item.rate,
@@ -381,6 +401,7 @@ def get_sales_order_print_data(so_name):
 
 	return {
 		"so_name": so.name,
+		"so_barcode": safe_barcode(so.name),
 		"customer": so.customer_name or so.customer,
 		"address": address_text,
 		"contact": contact_text,
