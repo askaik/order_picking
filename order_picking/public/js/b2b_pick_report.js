@@ -252,7 +252,7 @@ ${logRows ? `<h3>Scan Log (${(doc.log || []).length} scans)</h3>
     ${taxRow}
     <tr class="total-row">
       <td colspan="6" style="${S.td}text-align:right">Grand Total</td>
-      <td style="${S.td}${S.num}font-size:15px">${cur} ${fmt(so.grand_total)}</td>
+      <td style="${S.td}${S.num}font-size:15px">${cur} ${fmt(grandTotal)}</td>
     </tr>
   </tbody>
 </table>
