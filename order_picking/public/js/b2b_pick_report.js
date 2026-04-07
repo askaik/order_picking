@@ -139,9 +139,11 @@ ${logRows ? `<h3>Scan Log (${(doc.log || []).length} scans)</h3>
 
 			let totalOrderQty = 0, totalPickedQty = 0, grandTotal = 0;
 
+			const bcSvg = (value) =>
+				`<svg data-bc="${value}" style="display:block;width:130px;height:36px;margin-top:2px"></svg>`;
+
 			const rows = so.items.map((item, idx) => {
 				const barcodes = item.barcodes || [];
-				const barcode_svgs = item.barcode_svgs || [];
 				const picked = pickedMap[item.item_code] || 0;
 				const amount = (item.rate || 0) * picked;
 				totalOrderQty += item.qty || 0;
@@ -149,9 +151,9 @@ ${logRows ? `<h3>Scan Log (${(doc.log || []).length} scans)</h3>
 				grandTotal += amount;
 
 				const skuCell = `<strong style="font-size:12px">${item.item_code}</strong>`
-					+ barcodes.map((bc, i) =>
+					+ barcodes.map(bc =>
 						`<br><span style="font-family:monospace;font-size:10px;color:#888">${bc}</span>`
-						+ (barcode_svgs[i] || '')
+						+ bcSvg(bc)
 					).join('');
 
 				return `<tr>
@@ -205,7 +207,7 @@ ${logRows ? `<h3>Scan Log (${(doc.log || []).length} scans)</h3>
   <div>
     <div class="lbl">Sales Order</div>
     <div class="val">${so.so_name}</div>
-    ${so.so_barcode || ''}
+    <svg data-bc="${so.so_name}" style="display:block;width:130px;height:36px;margin-top:2px"></svg>
   </div>
   <div>
     <div class="lbl">Address</div>
@@ -265,8 +267,27 @@ ${logRows ? `<h3>Scan Log (${(doc.log || []).length} scans)</h3>
 			const w = window.open('', '_blank');
 			w.document.write(html);
 			w.document.close();
-			w.focus();
-			w.print();
+
+			// Load JsBarcode then render all [data-bc] SVGs before printing
+			const script = w.document.createElement('script');
+			script.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js';
+			script.onload = () => {
+				w.document.querySelectorAll('svg[data-bc]').forEach(el => {
+					try {
+						w.JsBarcode(el, el.getAttribute('data-bc'), {
+							format: 'CODE128',
+							width: 1.2,
+							height: 28,
+							displayValue: false,
+							margin: 0,
+						});
+					} catch(e) {}
+				});
+				w.focus();
+				w.print();
+			};
+			script.onerror = () => { w.focus(); w.print(); };
+			w.document.head.appendChild(script);
 		};
 	}
 });
