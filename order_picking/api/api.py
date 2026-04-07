@@ -325,6 +325,79 @@ def get_stock_for_items(item_codes, warehouse):
 
 
 @frappe.whitelist()
+def get_sales_order_print_data(so_name):
+	"""Return all data needed for the customer-facing order print."""
+	if not frappe.db.exists("Sales Order", so_name):
+		frappe.throw(f"Sales Order {so_name} not found")
+
+	so = frappe.get_doc("Sales Order", so_name)
+
+	# Customer address
+	address_text = ""
+	if so.customer_address:
+		addr = frappe.get_doc("Address", so.customer_address)
+		parts = [
+			addr.address_line1,
+			addr.address_line2,
+			addr.city,
+			addr.state,
+			addr.country,
+		]
+		address_text = ", ".join(p for p in parts if p)
+
+	# Contact details
+	contact_text = ""
+	if so.contact_person:
+		try:
+			contact = frappe.get_doc("Contact", so.contact_person)
+			name_parts = [contact.first_name, contact.last_name]
+			contact_name = " ".join(p for p in name_parts if p)
+			phones = [p.phone for p in (contact.phone_nos or []) if p.phone]
+			emails = [e.email_id for e in (contact.email_ids or []) if e.email_id]
+			parts = [contact_name] + phones + emails
+			contact_text = " | ".join(p for p in parts if p)
+		except Exception:
+			pass
+
+	items = []
+	for item in so.items:
+		barcodes = frappe.db.get_all(
+			"Item Barcode",
+			filters={"parent": item.item_code},
+			fields=["barcode"],
+			order_by="idx asc"
+		)
+		items.append({
+			"item_code": item.item_code,
+			"item_name": item.item_name or "",
+			"barcodes": [b.barcode for b in barcodes if b.barcode],
+			"qty": item.qty,
+			"uom": item.uom or "Nos",
+			"rate": item.rate,
+			"amount": item.amount,
+			"discount_percentage": item.discount_percentage or 0,
+			"price_list_rate": item.price_list_rate or 0,
+		})
+
+	return {
+		"so_name": so.name,
+		"customer": so.customer_name or so.customer,
+		"address": address_text,
+		"contact": contact_text,
+		"date": str(so.transaction_date or ""),
+		"po_number": so.po_no or "",
+		"currency": so.currency or "KWD",
+		"total_qty": so.total_qty or 0,
+		"total": so.total or 0,
+		"discount_amount": so.discount_amount or 0,
+		"grand_total": so.grand_total or 0,
+		"taxes_and_charges": so.taxes_and_charges or "",
+		"total_taxes_and_charges": so.total_taxes_and_charges or 0,
+		"items": items,
+	}
+
+
+@frappe.whitelist()
 def get_item_barcodes(item_codes):
 	"""Return all barcodes for a list of item codes. item_codes is a JSON string list."""
 	import json as _json

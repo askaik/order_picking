@@ -4,21 +4,21 @@ frappe.ui.form.on('B2B Pick Report', {
 			frm.call_button_print_summary();
 		}, __('Print'));
 
-		// Also add as a primary button for quick access
+		frm.add_custom_button(__('Customer Order'), () => {
+			frm.call_button_customer_order();
+		}, __('Print'));
+
 		frm.page.set_secondary_action(__('Print Summary'), () => {
 			frm.call_button_print_summary();
 		});
-	}
-});
+	},
 
-// Attach the print function to the form instance
-frappe.ui.form.on('B2B Pick Report', {
 	onload(frm) {
+		// ── Print Summary ────────────────────────────────────────────────
 		frm.call_button_print_summary = async function () {
 			const doc = frm.doc;
 			const item_codes = (doc.items || []).map(i => i.item_code);
 
-			// Fetch barcodes for all items
 			let barcodeMap = {};
 			if (item_codes.length) {
 				const res = await frappe.call({
@@ -107,5 +107,167 @@ ${logRows ? `<h3>Scan Log (${(doc.log || []).length} scans)</h3>
 			w.focus();
 			w.print();
 		};
+
+		// ── Customer Order ───────────────────────────────────────────────
+		frm.call_button_customer_order = async function () {
+			const doc = frm.doc;
+			if (!doc.sales_order) {
+				frappe.msgprint(__('No Sales Order linked to this report.'));
+				return;
+			}
+
+			frappe.show_progress(__('Loading...'), 0, 100);
+
+			const res = await frappe.call({
+				method: 'order_picking.api.api.get_sales_order_print_data',
+				args: { so_name: doc.sales_order }
+			});
+
+			frappe.hide_progress();
+
+			const so = res.message;
+			if (!so) { frappe.msgprint(__('Failed to load Sales Order data.')); return; }
+
+			// Build item-code → picked qty map from BPR items
+			const pickedMap = {};
+			(doc.items || []).forEach(i => {
+				pickedMap[i.item_code] = (pickedMap[i.item_code] || 0) + (i.picked_qty || 0);
+			});
+
+			const fmt = (n) => parseFloat(n || 0).toLocaleString('en-KW', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+			const cur = so.currency || 'KWD';
+
+			let totalOrderQty = 0, totalPickedQty = 0, grandTotal = 0;
+
+			const rows = so.items.map((item, idx) => {
+				const barcodes = (item.barcodes || []).join(', ');
+				const picked = pickedMap[item.item_code] || 0;
+				const amount = (item.rate || 0) * picked;
+				totalOrderQty += item.qty || 0;
+				totalPickedQty += picked;
+				grandTotal += amount;
+
+				return `<tr>
+					<td style="${S.td}">${idx + 1}</td>
+					<td style="${S.td}">
+						<strong style="font-size:12px">${item.item_code}</strong>
+						${barcodes ? `<br><span style="font-family:monospace;font-size:10px;color:#999">${barcodes}</span>` : ''}
+					</td>
+					<td style="${S.td}">${item.item_name || ''}</td>
+					<td style="${S.td}${S.num}">${item.qty}</td>
+					<td style="${S.td}${S.num}${picked < item.qty ? 'color:#dc2626;' : 'color:#16a34a;'}font-weight:bold">${picked}</td>
+					<td style="${S.td}${S.num}">${cur} ${fmt(item.rate)}</td>
+					<td style="${S.td}${S.num}font-weight:bold">${cur} ${fmt(amount)}</td>
+				</tr>`;
+			}).join('');
+
+			// Discount row
+			const discountRow = so.discount_amount > 0
+				? `<tr><td colspan="6" style="${S.td}text-align:right;color:#dc2626">Discount</td><td style="${S.td}${S.num}color:#dc2626;font-weight:bold">- ${cur} ${fmt(so.discount_amount)}</td></tr>`
+				: '';
+
+			// Tax row
+			const taxRow = so.total_taxes_and_charges > 0
+				? `<tr><td colspan="6" style="${S.td}text-align:right;color:#555">${so.taxes_and_charges || 'Tax'}</td><td style="${S.td}${S.num}">${cur} ${fmt(so.total_taxes_and_charges)}</td></tr>`
+				: '';
+
+			const html = `<html><head><title>Customer Order — ${so.so_name}</title>
+<style>
+  @page { margin: 15mm 18mm; }
+  body { font-family: system-ui, Arial, sans-serif; color: #222; font-size: 13px; }
+  h2 { margin: 0 0 2px; font-size: 22px; color: #1a1a2e; letter-spacing: 0.5px; }
+  .header-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; margin-bottom: 18px; }
+  .lbl { font-size: 10px; font-weight: bold; text-transform: uppercase; color: #888; margin-bottom: 1px; }
+  .val { font-size: 13px; color: #222; }
+  .divider { border: none; border-top: 2px solid #1a1a2e; margin: 14px 0 18px; }
+  table { border-collapse: collapse; width: 100%; }
+  th { background: #1a1a2e; color: #fff; text-align: left; padding: 8px 10px; font-size: 11px; text-transform: uppercase; }
+  th.r { text-align: right; }
+  .total-row td { font-weight: bold; font-size: 13px; border-top: 2px solid #1a1a2e; }
+  .footer { text-align: center; margin-top: 40px; padding-top: 14px; border-top: 1px solid #ddd; font-size: 11px; color: #666; line-height: 1.7; }
+  .footer strong { font-size: 13px; color: #1a1a2e; display: block; margin-bottom: 2px; }
+</style>
+</head><body>
+
+<h2>Kuwait Projects Group</h2>
+<p style="margin:0 0 14px;color:#555;font-size:12px">Kuwait Cairo Street, Cairo Tower, 9th Floor</p>
+<hr class="divider">
+
+<div class="header-grid">
+  <div>
+    <div class="lbl">Customer</div>
+    <div class="val"><strong>${so.customer}</strong></div>
+  </div>
+  <div>
+    <div class="lbl">Sales Order</div>
+    <div class="val">${so.so_name}</div>
+  </div>
+  <div>
+    <div class="lbl">Address</div>
+    <div class="val">${so.address || '&mdash;'}</div>
+  </div>
+  <div>
+    <div class="lbl">Date</div>
+    <div class="val">${so.date || '&mdash;'}</div>
+  </div>
+  ${so.po_number ? `<div>
+    <div class="lbl">Customer's Purchase Order</div>
+    <div class="val">${so.po_number}</div>
+  </div>` : ''}
+  ${so.contact ? `<div>
+    <div class="lbl">Contact</div>
+    <div class="val">${so.contact}</div>
+  </div>` : ''}
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Item Code / Barcode</th>
+      <th>Item Name</th>
+      <th class="r">Qty Ordered</th>
+      <th class="r">Order Sent</th>
+      <th class="r">Rate (${cur})</th>
+      <th class="r">Amount (${cur})</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${rows}
+    <tr style="background:#f9f9f9">
+      <td colspan="3" style="${S.td}font-weight:bold;text-align:right;color:#555">TOTALS</td>
+      <td style="${S.td}${S.num}font-weight:bold">${totalOrderQty}</td>
+      <td style="${S.td}${S.num}font-weight:bold">${totalPickedQty}</td>
+      <td style="${S.td}"></td>
+      <td style="${S.td}${S.num}font-weight:bold">${cur} ${fmt(grandTotal)}</td>
+    </tr>
+    ${discountRow}
+    ${taxRow}
+    <tr class="total-row">
+      <td colspan="6" style="${S.td}text-align:right">Grand Total</td>
+      <td style="${S.td}${S.num}font-size:15px">${cur} ${fmt(so.grand_total)}</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="footer">
+  <strong>Kuwait Projects Group</strong>
+  Kuwait Cairo Street, Cairo Tower, 9th Floor<br>
+  Contact: +965 97419902 &nbsp;|&nbsp; Email: info@kuwaitgroupco.com
+</div>
+</body></html>`;
+
+			const w = window.open('', '_blank');
+			w.document.write(html);
+			w.document.close();
+			w.focus();
+			w.print();
+		};
 	}
 });
+
+// Shared styles object (defined outside handler to keep rows DRY)
+const S = {
+	td: 'padding:7px 10px;border:1px solid #ddd;font-size:12px;',
+	num: 'text-align:right;',
+};
