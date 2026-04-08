@@ -515,7 +515,7 @@
 
     <!-- Close B2B Pick Confirmation Modal -->
     <Transition name="fade">
-      <div v-if="showCloseConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showCloseConfirm = false">
+      <div v-if="showCloseConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border-2 border-orange-300 dark:border-orange-700 p-7 w-full max-w-sm mx-4">
           <div class="flex items-center gap-3 mb-4">
             <div class="w-10 h-10 bg-orange-100 dark:bg-orange-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -1071,8 +1071,9 @@ const handleB2BKeydown = (e) => {
       return;
     }
     if (showCloseConfirm.value) {
+      // Swallow Esc entirely — modal must be dismissed via buttons only
       e.preventDefault();
-      showCloseConfirm.value = false;
+      e.stopImmediatePropagation();
       return;
     }
     // If picking is in progress, show confirmation before closing
