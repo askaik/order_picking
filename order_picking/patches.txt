@@ -1,2 +1,3 @@
 order_picking.patches.v1_0.reset_workspace
+order_picking.patches.v1_0.restore_invoice_statuses
 order_picking.patches.v1_0.create_print_formats

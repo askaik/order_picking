@@ -29,8 +29,12 @@ required_apps = ["erpnext"]
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
-# doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
+doctype_js = {
+	"Sales Order": "public/js/sales_order.js",
+	"B2B Pick Report": "public/js/b2b_pick_report.js"
+}
+doctype_list_js = {"Sales Invoice": "public/js/sales_invoice_list.js"}
+
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
@@ -40,3 +44,8 @@ website_route_rules = [
 ]
 
 after_migrate = "order_picking.setup.after_migrate"
+
+fixtures = [
+	{"dt": "Workspace", "filters": [["name", "=", "Order Picking"]]},
+	{"dt": "Print Format", "filters": [["doc_type", "=", "B2B Pick Report"]]}
+]
