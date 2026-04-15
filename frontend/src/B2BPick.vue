@@ -454,6 +454,10 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
           Print Summary
         </button>
+        <button @click="printCustomerOrder" class="text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 px-5 py-2.5 rounded-lg transition-colors shadow-sm ring-1 ring-inset ring-blue-200 dark:ring-blue-800 flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          Customer Order
+        </button>
         <button @click="resetForNextOrder" class="text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 px-5 py-2.5 rounded-lg transition-all shadow-md hover:-translate-y-0.5 hover:shadow-lg flex items-center gap-2">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
           Scan Next Order
@@ -1361,22 +1365,42 @@ const handleItemScan = () => {
   itemScan.value = '';
 };
 
+// Helper: get scanned barcode map and first-barcode fallback map
+const getBarcodeMaps = () => {
+  // item_code → scanned barcode from scan log
+  const scannedBC = {};
+  pickingLog.value.forEach(log => {
+    if (log.item_code && log.barcode && log.barcode !== '(F9 override)' && log.barcode !== '(removed)') {
+      scannedBC[log.item_code] = log.barcode;
+    }
+  });
+  // item_code → first barcode from Item Master (fallback when scanned by SKU)
+  const firstBC = {};
+  Object.entries(barcodeMap.value).forEach(([bc, v]) => {
+    if (!firstBC[v.item_code]) firstBC[v.item_code] = bc;
+  });
+  return { scannedBC, firstBC };
+};
+
+// Helper: resolve single display barcode for an item
+const resolveDisplayBarcode = (itemCode, scannedBC, firstBC) => {
+  const scanned = scannedBC[itemCode] || '';
+  // If scanned by actual barcode (not SKU), use it; otherwise fall back to first Item Master barcode
+  return (scanned && scanned !== itemCode) ? scanned : (firstBC[itemCode] || '');
+};
+
 const printPickList = () => {
   const orderQtyMap = {};
   originalItems.value.forEach(i => { orderQtyMap[i.item_code] = i.qty; });
-  // Build item_code → barcodes reverse map
-  const itemBarcodes = {};
-  Object.entries(barcodeMap.value).forEach(([bc, v]) => {
-    if (!itemBarcodes[v.item_code]) itemBarcodes[v.item_code] = [];
-    if (!itemBarcodes[v.item_code].includes(bc)) itemBarcodes[v.item_code].push(bc);
-  });
+  const { scannedBC, firstBC } = getBarcodeMaps();
+  const bcSvg = (value) => `<svg data-bc="${value}" style="display:block;width:130px;height:36px;margin-top:2px"></svg>`;
   const rows = pickedItems.value.map((item, idx) => {
     const orderQty = orderQtyMap[item.item_code] || 0;
     const overPick = item.qty > orderQty;
-    const barcodes = (itemBarcodes[item.item_code] || []).join(', ');
+    const displayBC = resolveDisplayBarcode(item.item_code, scannedBC, firstBC);
     return `<tr>
       <td style="padding:6px 12px;border:1px solid #ddd">${idx+1}</td>
-      <td style="padding:6px 12px;border:1px solid #ddd;font-weight:bold">${item.item_code}${barcodes ? `<br><span style="font-weight:normal;font-size:10px;color:#888;font-family:monospace">${barcodes}</span>` : ''}</td>
+      <td style="padding:6px 12px;border:1px solid #ddd;font-weight:bold">${item.item_code}${displayBC ? `<br><span style="font-weight:normal;font-size:10px;color:#888;font-family:monospace">${displayBC}</span>${bcSvg(displayBC)}` : ''}</td>
       <td style="padding:6px 12px;border:1px solid #ddd">${item.item_name||''}</td>
       <td style="padding:6px 12px;border:1px solid #ddd;text-align:right;color:#666">${orderQty}</td>
       <td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:bold;color:${overPick?'#dc2626':'#16a34a'}">${item.qty}${overPick?' ⚠':''}</td>
@@ -1392,14 +1416,23 @@ const printPickList = () => {
     `<p style="color:#666;margin:0 0 4px"><strong>Sales Order:</strong> ${currentSO.value} &nbsp; <strong>Customer:</strong> ${customerName.value} &nbsp; <strong>Status:</strong> ${soStatus.value||'N/A'} &nbsp; <strong>Picked:</strong> ${percentage.value}%</p>` +
     `<p style="color:#999;margin:0 0 20px;font-size:12px">Printed: ${new Date().toLocaleString()}</p>` +
     `<h3 style="margin:0 0 8px">Picked Items Summary</h3>` +
-    `<table><thead><tr><th>#</th><th>Item Code</th><th>Item Name</th><th style="text-align:right">Order Qty</th><th style="text-align:right">Picked Qty</th><th>UOM</th><th>Warehouse</th></tr></thead><tbody>${rows}</tbody></table>` +
+    `<table><thead><tr><th>#</th><th>Item Code / Barcode</th><th>Item Name</th><th style="text-align:right">Order Qty</th><th style="text-align:right">Picked Qty</th><th>UOM</th><th>Warehouse</th></tr></thead><tbody>${rows}</tbody></table>` +
     (logRows ? `<h3 style="margin:24px 0 8px">Scan Log</h3><table><thead><tr><th>#</th><th>Time</th><th>Item</th><th>Barcode</th><th style="text-align:right">Qty</th><th>Details</th></tr></thead><tbody>${logRows}</tbody></table>` : '') +
     `</body></html>`;
   const w = window.open('', '_blank');
   w.document.write(html);
   w.document.close();
-  w.focus();
-  w.print();
+  // Load JsBarcode to render barcode SVGs
+  const script = w.document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js';
+  script.onload = () => {
+    w.document.querySelectorAll('svg[data-bc]').forEach(el => {
+      try { w.JsBarcode(el, el.getAttribute('data-bc'), { format: 'CODE128', width: 1.2, height: 28, displayValue: false, margin: 0 }); } catch(e) {}
+    });
+    w.focus(); w.print();
+  };
+  script.onerror = () => { w.focus(); w.print(); };
+  w.document.head.appendChild(script);
 };
 
 const createMR = async () => {
@@ -1476,16 +1509,13 @@ const printCompletedSummary = () => {
   const c = completedSE.value;
   const orderQtyMap = {};
   originalItems.value.forEach(i => { orderQtyMap[i.item_code] = (orderQtyMap[i.item_code] || 0) + i.qty; });
-  const itemBarcodes = {};
-  Object.entries(barcodeMap.value).forEach(([bc, v]) => {
-    if (!itemBarcodes[v.item_code]) itemBarcodes[v.item_code] = [];
-    if (!itemBarcodes[v.item_code].includes(bc)) itemBarcodes[v.item_code].push(bc);
-  });
+  const { scannedBC, firstBC } = getBarcodeMaps();
+  const bcSvg = (value) => `<svg data-bc="${value}" style="display:block;width:130px;height:36px;margin-top:2px"></svg>`;
   const rows = c.items.map((item, idx) => {
     const orderQty = orderQtyMap[item.item_code] || 0;
     const overPick = item.qty > orderQty;
-    const barcodes = (itemBarcodes[item.item_code] || []).join(', ');
-    return `<tr><td style="padding:6px 12px;border:1px solid #ddd">${idx+1}</td><td style="padding:6px 12px;border:1px solid #ddd;font-weight:bold">${item.item_code}${barcodes ? `<br><span style="font-weight:normal;font-size:10px;color:#888;font-family:monospace">${barcodes}</span>` : ''}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.item_name||''}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right">${orderQty}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:bold;color:${overPick?'#dc2626':'#16a34a'}">${item.qty}${overPick?' ⚠':''}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.uom||'Nos'}</td><td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.from_warehouse||''}</td><td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.to_warehouse||''}</td></tr>`;
+    const displayBC = resolveDisplayBarcode(item.item_code, scannedBC, firstBC);
+    return `<tr><td style="padding:6px 12px;border:1px solid #ddd">${idx+1}</td><td style="padding:6px 12px;border:1px solid #ddd;font-weight:bold">${item.item_code}${displayBC ? `<br><span style="font-weight:normal;font-size:10px;color:#888;font-family:monospace">${displayBC}</span>${bcSvg(displayBC)}` : ''}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.item_name||''}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right">${orderQty}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right;font-weight:bold;color:${overPick?'#dc2626':'#16a34a'}">${item.qty}${overPick?' ⚠':''}</td><td style="padding:6px 12px;border:1px solid #ddd">${item.uom||'Nos'}</td><td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.from_warehouse||''}</td><td style="padding:6px 12px;border:1px solid #ddd;font-size:11px">${item.to_warehouse||''}</td></tr>`;
   }).join('');
   const logRows = pickingLog.value.map((log, idx) =>
     `<tr><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">${idx+1}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">${log.time}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;font-weight:bold">${log.item_code}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;font-family:monospace">${log.barcode}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px;text-align:right;font-weight:bold">${log.qty}</td><td style="padding:4px 8px;border:1px solid #eee;font-size:11px">&times;${log.multiplier} (${log.uom_factor})</td></tr>`
@@ -1496,14 +1526,145 @@ const printCompletedSummary = () => {
     `<p style="color:#666;margin:0 0 4px"><span class="badge" style="background:#fef3c7;color:#92400e">MR: ${c.mr_name}</span><span class="badge" style="background:#d1fae5;color:#065f46">SE: ${c.se_name}</span></p>` +
     `<p style="color:#999;margin:0 0 20px;font-size:12px">Printed: ${new Date().toLocaleString()}</p>` +
     `<h3 style="margin:0 0 8px">Transfer Items</h3>` +
-    `<table><thead><tr><th>#</th><th>Item Code</th><th>Item Name</th><th style="text-align:right">Order Qty</th><th style="text-align:right">Picked Qty</th><th>UOM</th><th>Source WH</th><th>Dest WH</th></tr></thead><tbody>${rows}</tbody></table>` +
+    `<table><thead><tr><th>#</th><th>Item Code / Barcode</th><th>Item Name</th><th style="text-align:right">Order Qty</th><th style="text-align:right">Picked Qty</th><th>UOM</th><th>Source WH</th><th>Dest WH</th></tr></thead><tbody>${rows}</tbody></table>` +
     (logRows ? `<h3 style="margin:24px 0 8px">Scan Log (${pickingLog.value.length} scans)</h3><table><thead><tr><th>#</th><th>Time</th><th>Item</th><th>Barcode</th><th style="text-align:right">Qty</th><th>Details</th></tr></thead><tbody>${logRows}</tbody></table>` : '') +
     `</body></html>`;
   const w = window.open('', '_blank');
   w.document.write(html);
   w.document.close();
-  w.focus();
-  w.print();
+  // Load JsBarcode to render barcode SVGs
+  const script = w.document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js';
+  script.onload = () => {
+    w.document.querySelectorAll('svg[data-bc]').forEach(el => {
+      try { w.JsBarcode(el, el.getAttribute('data-bc'), { format: 'CODE128', width: 1.2, height: 28, displayValue: false, margin: 0 }); } catch(e) {}
+    });
+    w.focus(); w.print();
+  };
+  script.onerror = () => { w.focus(); w.print(); };
+  w.document.head.appendChild(script);
+};
+
+const printCustomerOrder = async () => {
+  const c = completedSE.value;
+  if (!c || !c.so_name) return;
+
+  const so = await apiCall('order_picking.api.api.get_sales_order_print_data', { so_name: c.so_name });
+  if (!so) return;
+
+  // Build picked qty map from completed SE items
+  const pickedMap = {};
+  (c.items || []).forEach(i => { pickedMap[i.item_code] = (pickedMap[i.item_code] || 0) + (i.qty || 0); });
+
+  const { scannedBC, firstBC } = getBarcodeMaps();
+
+  const fmt = (n) => parseFloat(n || 0).toLocaleString('en-KW', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  const cur = so.currency || 'KWD';
+  let totalOrderQty = 0, totalPickedQty = 0, grandTotal = 0;
+  const bcSvg = (value) => `<svg data-bc="${value}" style="display:block;width:130px;height:36px;margin-top:2px"></svg>`;
+  const td = 'padding:7px 10px;border:1px solid #ddd;font-size:12px;';
+  const num = 'text-align:right;';
+
+  const rows = so.items.map((item, idx) => {
+    // Use scanned barcode, falling back to first Item Master barcode, then to API barcodes
+    let displayBC = resolveDisplayBarcode(item.item_code, scannedBC, firstBC);
+    if (!displayBC && (item.barcodes || []).length) displayBC = item.barcodes[0];
+    const picked = pickedMap[item.item_code] || 0;
+    const amount = (item.rate || 0) * picked;
+    totalOrderQty += item.qty || 0;
+    totalPickedQty += picked;
+    grandTotal += amount;
+
+    const skuCell = `<strong style="font-size:12px">${item.item_code}</strong>`
+      + (displayBC
+          ? `<br><span style="font-family:monospace;font-size:10px;color:#888">${displayBC}</span>${bcSvg(displayBC)}`
+          : '');
+
+    return `<tr>
+      <td style="${td}">${idx + 1}</td>
+      <td style="${td}">${skuCell}</td>
+      <td style="${td}">${item.item_name || ''}</td>
+      <td style="${td}${num}">${item.qty}</td>
+      <td style="${td}${num}${picked < item.qty ? 'color:#dc2626;' : 'color:#16a34a;'}font-weight:bold">${picked}</td>
+      <td style="${td}${num}">${cur} ${fmt(item.rate)}</td>
+      <td style="${td}${num}font-weight:bold">${cur} ${fmt(amount)}</td>
+    </tr>`;
+  }).join('');
+
+  const discountRow = so.discount_amount > 0
+    ? `<tr><td colspan="6" style="${td}text-align:right;color:#dc2626">Discount</td><td style="${td}${num}color:#dc2626;font-weight:bold">- ${cur} ${fmt(so.discount_amount)}</td></tr>`
+    : '';
+  const taxRow = so.total_taxes_and_charges > 0
+    ? `<tr><td colspan="6" style="${td}text-align:right;color:#555">${so.taxes_and_charges || 'Tax'}</td><td style="${td}${num}">${cur} ${fmt(so.total_taxes_and_charges)}</td></tr>`
+    : '';
+
+  const html = `<html><head><title>Customer Order — ${so.so_name}</title>
+<style>
+  @page { margin: 15mm 18mm; }
+  body { font-family: system-ui, Arial, sans-serif; color: #222; font-size: 13px; }
+  h2 { margin: 0 0 2px; font-size: 22px; color: #1a1a2e; letter-spacing: 0.5px; }
+  .header-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; margin-bottom: 18px; }
+  .lbl { font-size: 10px; font-weight: bold; text-transform: uppercase; color: #888; margin-bottom: 1px; }
+  .val { font-size: 13px; color: #222; }
+  .divider { border: none; border-top: 2px solid #1a1a2e; margin: 14px 0 18px; }
+  table { border-collapse: collapse; width: 100%; }
+  th { background: #1a1a2e; color: #fff; text-align: left; padding: 8px 10px; font-size: 11px; text-transform: uppercase; }
+  th.r { text-align: right; }
+  .total-row td { font-weight: bold; font-size: 13px; border-top: 2px solid #1a1a2e; }
+  .footer { text-align: center; margin-top: 40px; padding-top: 14px; border-top: 1px solid #ddd; font-size: 11px; color: #666; line-height: 1.7; }
+  .footer strong { font-size: 13px; color: #1a1a2e; display: block; margin-bottom: 2px; }
+</style>
+</head><body>
+<h2>Kuwait Projects Group</h2>
+<p style="margin:0 0 14px;color:#555;font-size:12px">Kuwait Cairo Street, Cairo Tower, 9th Floor</p>
+<hr class="divider">
+<div class="header-grid">
+  <div><div class="lbl">Customer</div><div class="val"><strong>${so.customer}</strong></div></div>
+  <div><div class="lbl">Sales Order</div><div class="val">${so.so_name}</div><svg data-bc="${so.so_name}" style="display:block;width:130px;height:36px;margin-top:2px"></svg></div>
+  <div><div class="lbl">Address</div><div class="val">${so.address || '&mdash;'}</div></div>
+  <div><div class="lbl">Date</div><div class="val">${so.date || '&mdash;'}</div></div>
+  ${so.po_number ? `<div><div class="lbl">Customer's Purchase Order</div><div class="val">${so.po_number}</div></div>` : ''}
+  ${so.contact ? `<div><div class="lbl">Contact</div><div class="val">${so.contact}</div></div>` : ''}
+</div>
+<table>
+  <thead><tr><th>#</th><th>Item Code / Barcode</th><th>Item Name</th><th class="r">Qty Ordered</th><th class="r">Order Sent</th><th class="r">Rate (${cur})</th><th class="r">Amount (${cur})</th></tr></thead>
+  <tbody>
+    ${rows}
+    <tr style="background:#f9f9f9">
+      <td colspan="3" style="${td}font-weight:bold;text-align:right;color:#555">TOTALS</td>
+      <td style="${td}${num}font-weight:bold">${totalOrderQty}</td>
+      <td style="${td}${num}font-weight:bold">${totalPickedQty}</td>
+      <td style="${td}"></td>
+      <td style="${td}${num}font-weight:bold">${cur} ${fmt(grandTotal)}</td>
+    </tr>
+    ${discountRow}
+    ${taxRow}
+    <tr class="total-row">
+      <td colspan="6" style="${td}text-align:right">Grand Total</td>
+      <td style="${td}${num}font-size:15px">${cur} ${fmt(grandTotal)}</td>
+    </tr>
+  </tbody>
+</table>
+<div class="footer">
+  <strong>Kuwait Projects Group</strong>
+  Kuwait Cairo Street, Cairo Tower, 9th Floor<br>
+  Contact: +965 97419902 &nbsp;|&nbsp; Email: info@kuwaitgroupco.com
+</div>
+</body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  const script = w.document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js';
+  script.onload = () => {
+    w.document.querySelectorAll('svg[data-bc]').forEach(el => {
+      try { w.JsBarcode(el, el.getAttribute('data-bc'), { format: 'CODE128', width: 1.2, height: 28, displayValue: false, margin: 0 }); } catch(e) {}
+    });
+    w.focus(); w.print();
+  };
+  script.onerror = () => { w.focus(); w.print(); };
+  w.document.head.appendChild(script);
 };
 
 const resetForNextOrder = async () => {

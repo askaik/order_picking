@@ -17,15 +17,27 @@ frappe.ui.form.on('B2B Pick Report', {
 		// ── Print Summary ────────────────────────────────────────────────
 		frm.call_button_print_summary = async function () {
 			const doc = frm.doc;
-			const item_codes = (doc.items || []).map(i => i.item_code);
 
-			let barcodeMap = {};
+			// Build item_code → scanned barcode from scan log (only the barcode actually scanned during picking)
+			const scannedBarcodeMap = {};
+			(doc.log || []).forEach(log => {
+				if (log.item_code && log.barcode && log.barcode !== '(F9 override)') {
+					scannedBarcodeMap[log.item_code] = log.barcode;
+				}
+			});
+
+			// Fetch first barcode per item from Item Master (fallback when scanned by SKU)
+			const item_codes = (doc.items || []).map(i => i.item_code);
+			let firstBarcodeMap = {};
 			if (item_codes.length) {
 				const res = await frappe.call({
 					method: 'order_picking.api.api.get_item_barcodes',
 					args: { item_codes: JSON.stringify(item_codes) }
 				});
-				barcodeMap = res.message || {};
+				const allBarcodes = res.message || {};
+				for (const [code, bcs] of Object.entries(allBarcodes)) {
+					if (bcs.length) firstBarcodeMap[code] = bcs[0];
+				}
 			}
 
 			const td = (content, style) =>
@@ -33,9 +45,13 @@ frappe.ui.form.on('B2B Pick Report', {
 
 			const rows = (doc.items || []).map((item, idx) => {
 				const over = item.picked_qty > item.order_qty && item.order_qty > 0;
-				const barcodes = (barcodeMap[item.item_code] || []).join(', ');
-				const skuCell = item.item_code + (barcodes
-					? `<br><span style="font-weight:normal;font-size:10px;color:#888;font-family:monospace">${barcodes}</span>`
+				const scannedBC = scannedBarcodeMap[item.item_code] || '';
+				// If scanned by actual barcode, use it; if scanned by SKU or not scanned, use first Item Master barcode
+				const displayBC = (scannedBC && scannedBC !== item.item_code)
+					? scannedBC
+					: (firstBarcodeMap[item.item_code] || '');
+				const skuCell = item.item_code + (displayBC
+					? `<br><span style="font-weight:normal;font-size:10px;color:#888;font-family:monospace">${displayBC}</span>`
 					: '');
 				return `<tr>
 					${td(idx + 1, 'color:#999')}
@@ -134,6 +150,14 @@ ${logRows ? `<h3>Scan Log (${(doc.log || []).length} scans)</h3>
 				pickedMap[i.item_code] = (pickedMap[i.item_code] || 0) + (i.picked_qty || 0);
 			});
 
+			// Build item_code → scanned barcode from scan log (only the barcode actually scanned during picking)
+			const scannedBarcodeMap = {};
+			(doc.log || []).forEach(log => {
+				if (log.item_code && log.barcode && log.barcode !== '(F9 override)') {
+					scannedBarcodeMap[log.item_code] = log.barcode;
+				}
+			});
+
 			const fmt = (n) => parseFloat(n || 0).toLocaleString('en-KW', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 			const cur = so.currency || 'KWD';
 
@@ -143,7 +167,11 @@ ${logRows ? `<h3>Scan Log (${(doc.log || []).length} scans)</h3>
 				`<svg data-bc="${value}" style="display:block;width:130px;height:36px;margin-top:2px"></svg>`;
 
 			const rows = so.items.map((item, idx) => {
-				const barcodes = item.barcodes || [];
+				const scannedBC = scannedBarcodeMap[item.item_code] || '';
+				// If scanned by actual barcode, use it; if scanned by SKU or not scanned, use first Item Master barcode
+				const displayBC = (scannedBC && scannedBC !== item.item_code)
+					? scannedBC
+					: ((item.barcodes || [])[0] || '');
 				const picked = pickedMap[item.item_code] || 0;
 				const amount = (item.rate || 0) * picked;
 				totalOrderQty += item.qty || 0;
@@ -151,10 +179,10 @@ ${logRows ? `<h3>Scan Log (${(doc.log || []).length} scans)</h3>
 				grandTotal += amount;
 
 				const skuCell = `<strong style="font-size:12px">${item.item_code}</strong>`
-					+ barcodes.map(bc =>
-						`<br><span style="font-family:monospace;font-size:10px;color:#888">${bc}</span>`
-						+ bcSvg(bc)
-					).join('');
+					+ (displayBC
+						? `<br><span style="font-family:monospace;font-size:10px;color:#888">${displayBC}</span>`
+						  + bcSvg(displayBC)
+						: '');
 
 				return `<tr>
 					<td style="${S.td}">${idx + 1}</td>
